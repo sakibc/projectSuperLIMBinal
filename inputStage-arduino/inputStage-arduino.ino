@@ -12,13 +12,14 @@ volatile uint8_t adcBuffer0[ADCBUFFERSIZE];  //use double-buffering, so ADC ISR
 volatile uint8_t adcBuffer1[ADCBUFFERSIZE];  //doesn't need to be paused while
 volatile uint8_t adcCounter;                 //transmitting full buffer
 volatile uint8_t currentBuffer;
+volatile uint8_t currentInput;
 
 void setup() {
   Serial.begin(BAUDRATE); //any slower than 500000 and the poor arduino can't keep up...
   Serial.println("Serial OK. Initializing...");
 
   DIDR0  = B11111111; //disable digital inputs to reduce noise
-  ADMUX  = B01000000; //select channel 0
+  ADMUX  = B01100000; //select channel 0, left-align
   ADCSRA = B11111101; //prescale of 32 for 37kS/s
   ADCSRB = B00000000;
   
@@ -43,7 +44,6 @@ void loop() {
         Serial.write((uint8_t*) adcBuffer1,ADCBUFFERSIZE);
         break;
     }
-    Serial.println("\nDONE"); //Cycle Complete
   }
 }
 
