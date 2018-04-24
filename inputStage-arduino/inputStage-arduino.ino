@@ -19,15 +19,19 @@ void setup() {
   Serial.println("Serial OK. Initializing...");
 
   DIDR0  = B11111111; //disable digital inputs to reduce noise
-  ADMUX  = B01100000; //select channel 0, left-align
+  ADMUX  = B01100000; //left-align
   ADCSRA = B11111101; //prescale of 32 for 37kS/s
   ADCSRB = B00000000;
   
   memset((void*)adcBuffer0,0,sizeof(adcBuffer0)); //clear buffers
   memset((void*)adcBuffer1,0,sizeof(adcBuffer1));
+
+  currentInput = ELEC1; //start with channel 1 so it selects the correct channel
+  ADMUX = (ADMUX & B11100000) + currentInput; //once we start capturing data...
   
   currentBuffer = 0;
   adcCounter = 0;
+
   sei();
 }
 
@@ -47,6 +51,25 @@ void loop() {
   }
 }
 
+void changeInput() {
+  switch(currentInput) {
+    case ELEC0:
+      currentInput = ELEC1;
+      break;
+    case ELEC1:
+      currentInput = ELEC2;
+      break;
+    case ELEC2:
+      currentInput = ELEC3;
+      break;
+    case ELEC3:
+      currentInput = ELEC0;
+      break;
+  }
+
+  ADMUX = (ADMUX & B11100000) + currentInput;
+}
+
 ISR(ADC_vect) {
   switch(currentBuffer) {
     case 0:
@@ -57,5 +80,6 @@ ISR(ADC_vect) {
       break;
   }
   adcCounter += 1;
+  changeInput();
 }
 

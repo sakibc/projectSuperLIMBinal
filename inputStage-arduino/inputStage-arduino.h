@@ -25,3 +25,5 @@
 #ifndef sbi
 #define sbi(sfr, bit) (_SFR_BYTE(sfr) |= _BV(bit))
 #endif
+
+#define NOP __asm__ __volatile__ ("nop\n\t")
