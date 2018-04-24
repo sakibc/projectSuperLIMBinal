@@ -5,6 +5,9 @@ name = "pypi"
 
 [packages]
 pyserial = "*"
+matplotlib = "*"
+numpy = "*"
+drawnow = "*"
 
 [dev-packages]
 
