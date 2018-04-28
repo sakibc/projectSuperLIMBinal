@@ -1,8 +1,12 @@
-# Copyright 2018 Sakib Chowdhury and Claudia Lutfallah
-# This script monitors the serial port and captures the data in chunks of 64
-# bytes as the Arduino sends it at its maximum transfer rate. It separates the
-# data out of the chunk into arrays for each electrode and displays it on the
-# screen.
+""" Copyright 2018 Sakib Chowdhury and Claudia Lutfallah
+    This script monitors the serial port and captures the data in chunks of 64
+    bytes as the Arduino sends it at its maximum transfer rate. It separates the
+    data out of the chunk into arrays for each electrode and plots it live on
+    the screen.
+
+    This script currently only saves data once a desired amount of seconds has
+    passed, so it cannot be run indefinitely without running out of memory.
+"""
 
 # Imports
 
@@ -12,7 +16,8 @@ import sys
 import queue
 
 import matplotlib
-matplotlib.use('tkagg')
+matplotlib.use('tkagg') # change drawing backend so that a framework version of
+                        # python is not necessary.
 
 import multiprocessing as mp
 import matplotlib.pyplot as plt
@@ -33,19 +38,19 @@ port = '/dev/tty.usbmodem1411'  # port number for right-most USB port on a
 # we sample 601 times per second, which is 10 samples per frame at 60 fps.
 
 samplingRate = 9616 # make it an even multiple of 16 to ease data capture
-captureTime = 20
+captureTime = 20    # amount of time to capture for before saving and exiting
 
 # array to save data to import into MATLAB to determine how to process it.
-# once a processing algorithm is determined it the algorithm will be rewritten
-# in numpy so that we can run it on a raspberry pi, and we'll stop saving
+#TODO: once a processing algorithm is determined it the algorithm must be rewritten
+# in numpy so that we can run it on a raspberry pi, and we can stop saving
 # the data once we capture it
 elecData = np.zeros((4,samplingRate*captureTime))
 
 # Logic
 
-drawTime = 10 # only show the last 6 seconds of data on the screen
+drawTime = 10 # only show the last 10 seconds of data on the screen
 
-plt.style.use('seaborn-darkgrid')
+plt.style.use('seaborn-darkgrid')   # this graph style looks pretty...
 
 fig, ax = plt.subplots(4,1,sharex=True)
 line = [ax[i].plot([],[])[0] for i in range(4)]
