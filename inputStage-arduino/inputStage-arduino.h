@@ -15,6 +15,10 @@
 #define ELEC1 1
 #define ELEC2 2
 #define ELEC3 3
+#define ELEC4 4
+#define ELEC5 5
+#define ELEC6 6
+#define ELEC7 7
 
 // Helper macros /////////////////////////////////
 
