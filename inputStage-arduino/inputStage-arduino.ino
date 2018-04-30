@@ -52,19 +52,9 @@ void loop() {
 }
 
 void changeInput() {
-  switch(currentInput) {
-    case ELEC0:
-      currentInput = ELEC1;
-      break;
-    case ELEC1:
-      currentInput = ELEC2;
-      break;
-    case ELEC2:
-      currentInput = ELEC3;
-      break;
-    case ELEC3:
-      currentInput = ELEC0;
-      break;
+  currentInput += 1;
+  if (currentInput > ELEC7) {
+    currentInput = ELEC0;
   }
 
   ADMUX = (ADMUX & B11100000) + currentInput;
