@@ -32,12 +32,12 @@ def data_gen(t=0):  # get data to show on graph from other process
     while True:
         t += 0.1
         try:
-            dat = q.get(block=True, timeout=1)
+            dat = q.get(block=True,timeout=1)
             yield t, dat
         except queue.Empty:
             break
 
-def init(): # initialize emptry graph
+def init(): # initialize empty graph
     del xdata[:]
 
     for i in range(electrodeNum):
@@ -61,7 +61,8 @@ def run(data): # redraw graph
         xmin,xmax = ax[i].get_xlim()
 
         if t >= xmax:
-            ax[i].set_xlim(xmin+1,xmax+1)
+            xshift = 1
+            ax[i].set_xlim(xmin+xshift,xmax+xshift)
             ax[i].figure.canvas.draw()
 
     return line
@@ -93,7 +94,7 @@ def capture(q): # capture data
 
     samplingRate = int(blockSamples*round(float(38462/electrodeNum)/blockSamples))
     # make it an even multiple of 8 to ease data capture
-    captureTime = 20    # amount of time to capture for before saving and exiting
+    captureTime = 120    # amount of time to capture for before saving and exiting
 
     # array to save data to import into MATLAB to determine how to process it.
     #TODO: once a processing algorithm is determined it the algorithm must be rewritten
@@ -101,71 +102,86 @@ def capture(q): # capture data
     # the data once we capture it
     elecData = np.zeros((electrodeNum,samplingRate*captureTime))
 
-    try:
-        with serial.Serial(port, baudRate, timeout=1, dsrdtr=True) as arduIn:
-            q.put("Process started.")
-            print("Opening port...")
+    attemptConnect = True
+    timeout = 5
 
-            startMessage = arduIn.readline()
-            print(startMessage.decode('utf-8'))
+    while attemptConnect:
+        attemptConnect = False
+        try:
+            with serial.Serial(port, baudRate, timeout=1, dsrdtr=True) as arduIn:
+               
+                print("Opening port...")
 
-            capturing = True
-            startTime = time.time() # for now let's capture a set amount of data
+                startMessage = arduIn.readline().decode('utf-8')
+               
+                q.put("Connection established.")
+                print(startMessage)
 
-            while capturing:
-                try:
-                    rawdat = arduIn.read(64)
-                    dat = struct.unpack('64B',rawdat)
+                capturing = True
+                startTime = time.time() # for now let's capture a set amount of data
 
-                except serial.SerialException:
-                    print("Error: Connection lost.")
-                    print("\nSaving stored data...")
-                    capturing = False
+                while capturing:
+                    try:
+                        rawdat = arduIn.read(64)
+                        dat = struct.unpack('64B',rawdat)
 
-                except struct.error:
-                    print("Error: Device sent invalid data.")
-                    print("\nSaving stored data...")
-                    capturing = False
+                    except serial.SerialException:
+                        print("Error: Connection lost.")
+                        print("\nSaving stored data...")
+                        capturing = False
 
-                else:
-                    for i in range(electrodeNum):
-                        elecData[i][sampleNo:(
-                            sampleNo+blockSamples)] = dat[i::electrodeNum]
+                    except struct.error:
+                        print("Error: Device sent invalid data.")
+                        print("\nSaving stored data...")
+                        capturing = False
 
-                    sampleNo += blockSamples
+                    else:
+                        for i in range(electrodeNum):
+                            elecData[i][sampleNo:(
+                                sampleNo+blockSamples)] = dat[i::electrodeNum]
 
-                    queueTimer += 1
+                        sampleNo += blockSamples
 
-                    if queueTimer % 60 == 0:
-                        queueTimer = 0
-                        q.put([dat[i] for i in range(electrodeNum)])
-                        # we don't need to show all the data on the graph...
+                        queueTimer += 1
 
-                    if sampleNo >= samplingRate*captureTime:
-                        capturing = False   # we're done capturing
-                        print("Data capture complete.")
+                        if queueTimer % 60 == 0:
+                            queueTimer = 0
+                            q.put([dat[i] for i in range(electrodeNum)])
+                            # we don't need to show all the data on the graph...
 
+                        if sampleNo >= samplingRate*captureTime:
+                            capturing = False   # we're done capturing
+                            print("Data capture complete.")
 
-            csvfile = datetime.datetime.fromtimestamp(
-                startTime).strftime("%Y%m%d-%H%M%S") + ".csv"
-            csvfile = "../inputStage-analysis/capturedData/" + csvfile
+                csvfile = datetime.datetime.fromtimestamp(
+                    startTime).strftime("%Y%m%d-%H%M%S") + ".csv"
+                csvfile = "../inputStage-analysis/capturedData/" + csvfile
 
-            np.savetxt(csvfile, elecData, fmt="%d", delimiter=",")
+                np.savetxt(csvfile, elecData, fmt="%d", delimiter=",")
 
-            print("Data saved to", csvfile)
-            print("Close live plot to continue.")
+                print("Data saved to", csvfile)
+                print("Close live plot to continue.")
 
-    except serial.SerialException:
-        print("Error: Device not found.")
-        q.put("error")  # so the main program knows not to continue
-    except KeyboardInterrupt:
-        print("\nProgram execution interrupted.")
+        except serial.SerialException:
+            print("Error: Device not found.")
+            q.put("error")  # so the main program knows not to continue
+        except KeyboardInterrupt:
+            print("\nProgram execution interrupted.")
+        except UnicodeDecodeError:  # this happens sometimes...
+            print("Error: Device sent invalid data!")
+            timeout -= 1
+            if timeout >= 0:
+                print("Retrying connection...")
+                attemptConnect = True
+            else:
+                print("Invalid data received 5 times. Connection timed out.")
 
 if __name__ == "__main__":
 
     drawTime = 10  # only show the last 10 seconds of data on the screen
 
     plt.style.use('seaborn-darkgrid')   # this graph style looks pretty...
+    matplotlib.rcParams['toolbar'] = 'None'
 
     fig, ax = plt.subplots(int(electrodeNum/2), 2, sharex=True, sharey=True)
     ax = np.transpose(ax).flatten()
@@ -174,10 +190,12 @@ if __name__ == "__main__":
     ydata = [[] for i in range(electrodeNum)]
 
     fig.suptitle("EMG Sensor Data")
-    fig.text(0.5, 0, "Time", ha='center')
+    fig.text(0.5, 0.04, "Time", ha='center')
     fig.text(0.04, 0.5, "Normalized Activation Level", 
             va='center', rotation='vertical')
 
+    for i in range(electrodeNum):
+        ax[i].set_title("Electrode "+str(i+1))
 
     q = mp.Queue()
     p = mp.Process(target=capture, args=(q,))   #create separate process to handle
@@ -185,13 +203,15 @@ if __name__ == "__main__":
     p.start()                                   #by the live graph.
     message = q.get()
 
-    if message == "Process started.":
+    if message == "Connection established.":
         ani = animation.FuncAnimation(
             fig, run, data_gen, blit=True, interval=100, repeat=False, init_func=init)
 
         mng = plt.get_current_fig_manager() # maximize window, because it doesn't like
         mng.resize(*mng.window.maxsize())   # being maximized after the fact...
         plt.show()
+    else:
+        print("Connection failed!")
 
     p.join()
     sys.exit()
