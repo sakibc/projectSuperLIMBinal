@@ -8,6 +8,7 @@ pyserial = "*"
 matplotlib = "*"
 numpy = "*"
 "pyqt5" = "*"
+scipy = "*"
 
 [dev-packages]
 pylint = "*"

@@ -8,6 +8,8 @@
     passed, so it cannot be run indefinitely without running out of memory.
 """
 
+#TODO: get rid of magic numbers...
+
 # Imports
 
 import serial, struct, csv
@@ -25,15 +27,19 @@ import multiprocessing as mp
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import numpy as np
+import scipy.io
 
 electrodeNum = 8
 
 def data_gen(t=0):  # get data to show on graph from other process
     while True:
+        tlist = [t+0.1*i/60 for i in range(60)]
         t += 0.1
         try:
-            dat = q.get(block=True,timeout=1)
-            yield t, dat
+            dat = [q.get(block=True,timeout=1) for i in range(60)]
+            # there's probably a more efficient way to do this...
+            # pickling and unpickling 60 lists instead of 1 large list seems expensive
+            yield tlist, dat
         except queue.Empty:
             break
 
@@ -53,14 +59,15 @@ def init(): # initialize empty graph
 def run(data): # redraw graph
       # update the data
     t, elec = data
-    xdata.append(t)
+    xdata.extend(t)
     for i in range(electrodeNum):
-        ydata[i].append(elec[i]/255)
+        for j in range(60):
+            ydata[i].append(elec[j][i]/255)
 
         line[i].set_data(xdata, ydata[i])
         xmin,xmax = ax[i].get_xlim()
 
-        if t >= xmax:
+        if t[-1] >= xmax:
             xshift = 1
             ax[i].set_xlim(xmin+xshift,xmax+xshift)
             ax[i].figure.canvas.draw()
@@ -81,7 +88,7 @@ def getPort():
 
 def capture(q): # capture data
     sampleNo = 0
-    queueTimer = 0  # every 10 sets of samples, push some data to the queue for the graph to plot.
+    # queueTimer = 0  # every 10 sets of samples, push some data to the queue for the graph to plot.
 
     baudRate = 500000 # any slower and the Arduino can't send the data fast enough
 
@@ -142,24 +149,24 @@ def capture(q): # capture data
 
                         sampleNo += blockSamples
 
-                        queueTimer += 1
+                        # queueTimer += 1
 
-                        if queueTimer % 60 == 0:
-                            queueTimer = 0
-                            q.put([dat[i] for i in range(electrodeNum)])
-                            # we don't need to show all the data on the graph...
+                        # if queueTimer % 15 == 0:
+                        #     queueTimer = 0
+                        q.put([dat[i] for i in range(electrodeNum)])
+                        # we don't need to show all the data on the graph, as nice as that would be...
 
                         if sampleNo >= samplingRate*captureTime:
                             capturing = False   # we're done capturing
                             print("Data capture complete.")
 
-                csvfile = datetime.datetime.fromtimestamp(
-                    startTime).strftime("%Y%m%d-%H%M%S") + ".csv"
-                csvfile = "../inputStage-analysis/capturedData/" + csvfile
+                filename = datetime.datetime.fromtimestamp(
+                    startTime).strftime("%Y%m%d-%H%M%S") + ".mat"
+                filename = "../inputStage-analysis/capturedData/" + filename
 
-                np.savetxt(csvfile, elecData, fmt="%d", delimiter=",")
+                scipy.io.savemat(filename,{'elecData':elecData})
 
-                print("Data saved to", csvfile)
+                print("Data saved to", filename)
                 print("Close live plot to continue.")
 
         except serial.SerialException:
