@@ -8,7 +8,9 @@
     passed, so it cannot be run indefinitely without running out of memory.
 """
 
-#TODO: get rid of magic numbers...
+#TODO: -get rid of magic numbers...
+#      -make it modular...
+#      -end calibration if device disconnected
 
 # Imports
 
@@ -68,7 +70,7 @@ def run(data): # redraw graph
         xmin,xmax = ax[i].get_xlim()
 
         if t[-1] >= xmax:
-            xshift = 1
+            xshift = drawTime/2
             ax[i].set_xlim(xmin+xshift,xmax+xshift)
             ax[i].figure.canvas.draw()
 
@@ -101,7 +103,7 @@ def capture(q): # capture data
 
     samplingRate = int(blockSamples*round(float(38462/electrodeNum)/blockSamples))
     # make it an even multiple of 8 to ease data capture
-    captureTime = 120    # amount of time to capture for before saving and exiting
+    captureTime = 90    # amount of time to capture for before saving and exiting
 
     # array to save data to import into MATLAB to determine how to process it.
     #TODO: once a processing algorithm is determined it the algorithm must be rewritten
@@ -153,7 +155,7 @@ def capture(q): # capture data
 
                         # if queueTimer % 15 == 0:
                         #     queueTimer = 0
-                        q.put([dat[i] for i in range(electrodeNum)])
+                        q.put(dat[i] for i in range(electrodeNum)])
                         # we don't need to show all the data on the graph, as nice as that would be...
 
                         if sampleNo >= samplingRate*captureTime:
@@ -183,6 +185,26 @@ def capture(q): # capture data
             else:
                 print("Invalid data received 5 times. Connection timed out.")
 
+def prompt():
+    print("Letting the graph start up...")
+    time.sleep(0.2)
+    print("Starting calibration. Please follow the instructions as they appear.")
+    time.sleep(3.8) # calibration start time, 4 seconds
+
+    movements = ["Rest","Open Hand","Close Hand","Pronate","Supinate","Pronate Open","Pronate Close","Supinate Open","Supinate Close"]
+
+    for movement in movements:
+        print("\nReady? Next movement:",movement)
+        time.sleep(2)
+        print('Begin Movement')
+        time.sleep(2)
+        print('Hold Position')
+        time.sleep(3)
+        print('Release')
+        time.sleep(2)
+
+    print('Calibration data set collection complete.\n')
+
 if __name__ == "__main__":
 
     drawTime = 10  # only show the last 10 seconds of data on the screen
@@ -206,11 +228,18 @@ if __name__ == "__main__":
 
     q = mp.Queue()
     p = mp.Process(target=capture, args=(q,))   #create separate process to handle
-    print("Starting capture process...")        #data capture so that it's not blocked
-    p.start()                                   #by the live graph.
+    #data capture so that it's not blocked by the live graph.
+    promptp = mp.Process(target=prompt)
+    #process to manage timed prompts for data collection so it doesn't mess with
+    #the capture or graph drawing
+
+    print("Starting capture process...")        
+    p.start()
     message = q.get()
 
     if message == "Connection established.":
+        promptp.start()
+
         ani = animation.FuncAnimation(
             fig, run, data_gen, blit=True, interval=100, repeat=False, init_func=init)
 
@@ -221,4 +250,5 @@ if __name__ == "__main__":
         print("Connection failed!")
 
     p.join()
+    promptp.join()
     sys.exit()
