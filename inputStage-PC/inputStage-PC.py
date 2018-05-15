@@ -155,7 +155,7 @@ def capture(q): # capture data
 
                         # if queueTimer % 15 == 0:
                         #     queueTimer = 0
-                        q.put(dat[i] for i in range(electrodeNum)])
+                        q.put([dat[i] for i in range(electrodeNum)])
                         # we don't need to show all the data on the graph, as nice as that would be...
 
                         if sampleNo >= samplingRate*captureTime:
