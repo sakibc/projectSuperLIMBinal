@@ -248,6 +248,7 @@ if __name__ == "__main__":
         plt.show()
     else:
         print("Connection failed!")
+        sys.exit()
 
     p.join()
     promptp.join()
