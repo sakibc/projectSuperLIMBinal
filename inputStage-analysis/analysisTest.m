@@ -4,7 +4,7 @@ close all;
 clc;
 clear all;
 
-load capturedData/set2;
+load capturedData/set3;
 
 elecData = elecData.' - 128; % centre amplitude on 0
 Fs = 4808;
@@ -54,7 +54,7 @@ H = [H1;H2;H3;H4];
 maxes = max(H.');
 W = [W1*maxes(1),W2*maxes(2),W3*maxes(3),W4*maxes(4)];  % is this it? did I win?
 
-load capturedData/set3; % cross validation set, loaded in as elecData
+load capturedData/set2; % cross validation set, loaded in as elecData
 
 elecData = elecData.' - 128; % centre amplitude on 0
 for i = 1:6 % comb filter? get rid of that mains hum...
