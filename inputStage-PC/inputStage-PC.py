@@ -19,35 +19,59 @@ import sys
 import multiprocessing as mp
 import numpy as np
 import scipy.io
+import scipy.signal
 
 import emgCapture
 import emgPlot
 import userGuide
 
-electrodeNum = 8
+electrodeNum = L = 8
+synergyNum = N = 4
+Fs = 4808
+
+def clearQueue(q):
+    while q.empty() == False:
+        q.get()
+
+def getData(collectionTime, q):
+    dat = np.zeros((collectionTime*Fs,8))
+    return dat
+
+def calibrate(q):
+    W = np.ones((electrodeNum, synergyNum))
+    print("Starting calibration. Follow the instructions as they appear.")
+    promptp = mp.Process(target=userGuide.calibration)
+
+    clearQueue(q)  # let's empty the queue first so we can grab the latest data
+    promptp.start()
+    calibrationData = getData(45, q)   # capture 45 seconds of data
+
+    print("Processing data...")
+
+    return W
+
+def run(q): # main program logic
+    input("Press enter to start calibration.")
+
+    W = calibrate(q)
+    print(W)
+
 
 if __name__ == "__main__":
-    q = mp.Queue()
-    p = mp.Process(target=emgCapture.capture, args=(q, electrodeNum))   #create separate process to handle
-    #data capture so that it's not blocked by the live graph.
-    promptp = mp.Process(target=userGuide.prompt)
-    #process to manage timed prompts for data collection so it doesn't mess with
-    #the capture or graph drawing
+    q = mp.Queue(60)   # let a maximum of ~100ms of data pile up in the queue
+    p = mp.Process(target=emgCapture.capture, args=(q,))
+    #data capture process so that it's not blocked by program logic.
 
-    emgPlotter = emgPlot.emgPlotter(q, electrodeNum)
-
-    print("Starting capture process...")        
+    print("Connecting to device...")        
     p.start()
     message = q.get()
 
     if message == "Connection established.":
-        promptp.start()
-        emgPlotter.startAni()
+        run(q)
+
     else:
         print("Connection failed!")
         sys.exit()
 
     p.join()
-    promptp.terminate() # stop prompts if the capture process has ended
-    promptp.join()
     sys.exit()

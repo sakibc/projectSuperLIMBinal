@@ -3,13 +3,8 @@
 """
 import time
 
-def prompt():
-    print("Letting the graph start up...")
-    time.sleep(0.2)
-    print("Starting calibration. Please follow the instructions as they appear.")
-    time.sleep(3.8) # calibration start time, 4 seconds in
-
-    movements = ["Rest","Open Hand","Close Hand","Pronate","Supinate","Pronate Open","Pronate Close","Supinate Open","Supinate Close"]
+def calibration():
+    movements = ["Rest position","Open Hand","Close Hand","Pronate","Supinate"]
 
     for movement in movements:
         print("\nReady? Next movement:",movement)
