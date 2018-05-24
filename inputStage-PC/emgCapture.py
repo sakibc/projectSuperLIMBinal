@@ -10,6 +10,16 @@ import serial.tools.list_ports
 import struct
 import time
 
+
+def saveData(dat):
+    filename = datetime.datetime.fromtimestamp(
+        time.time()).strftime("%Y%m%d-%H%M%S") + ".mat"
+    filename = "../inputStage-analysis/capturedData/" + filename
+
+    scipy.io.savemat(filename, {'capturedData': dat})
+
+    print("Data saved to", filename)
+
 def getPort():
     ports = list(serial.tools.list_ports.comports())
     port = None
@@ -18,6 +28,8 @@ def getPort():
         if "Arduino" in p[1]:
             port = p[0]
         elif "CDC" in p[1]:  # let's just grab one and see what happens...
+            port = p[0]
+        elif "USB2.0-Serial" in p[1]:
             port = p[0]
 
     return port
@@ -50,7 +62,7 @@ def capture(q):
                 startMessage = arduIn.readline().decode('utf-8')
 
                 q.put("Connection established.")
-                print(startMessage)
+                print(startMessage[:-1])
 
                 capturing = True
 

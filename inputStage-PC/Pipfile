@@ -9,6 +9,7 @@ matplotlib = "*"
 numpy = "*"
 "pyqt5" = "*"
 scipy = "*"
+scikit-learn = "*"
 
 [dev-packages]
 pylint = "*"

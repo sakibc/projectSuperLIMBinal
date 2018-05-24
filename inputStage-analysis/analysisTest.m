@@ -19,18 +19,20 @@ for i = 2:6 % generate comb filter to remove mains hum
     den = conv(den,a);
 end
 
-padLength = 32*ceil(length(elecData)/32) - length(elecData);
-elecData = [elecData; zeros(16,8)];
-zif = zeros(1,12);
-test = zeros(size(elecData));
+% padLength = 32*ceil(length(elecData)/32) - length(elecData);
+% elecData = [elecData; zeros(16,8)];
+% zif = zeros(1,12);
+% test = zeros(size(elecData));
+% 
+% for i = 1:32:length(elecData) % just testing I guess...
+%     sample = elecData(i:i+31,:);
+%     [y, zif] = filter(num,den,sample,zif);
+%     test(i:i+31,:) = y;
+% end
 
-for i = 1:32:length(elecData) % just testing I guess...
-    sample = elecData(i:i+31,:);
-    [y, zif] = filter(num,den,sample,zif);
-    test(i:i+31,:) = y;
-end
+% elecData = test;
 
-elecData = test;
+elecData = filtfilt(num,den,elecData);
 
 elecData = elecData.^2;
 
