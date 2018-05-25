@@ -22,10 +22,11 @@ def menuPrompt():
     print(
 """\nSuperLIMBinal sensor-stage interactive test ready.
 Please select an option:
-  (1) Calibrate
-  (2) Load existing calibration matrix
-  (3) Run test
-  (4) Exit\n""")
+(1) Calibrate
+(2) Load existing calibration matrix
+(3) Live synergy monitor
+(4) Run test
+(5) Exit\n""")
 
 def endMessage():
     print("Thank you for choosing Project SuperLIMBinal.")

@@ -1,89 +1,92 @@
 """ Copyright 2018 Sakib Chowdhury and Claudia Lutfallah
     
 """
-import matplotlib       # change drawing backend so that a framework version of
-matplotlib.use('tkagg') # python is not necessary on mac.
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 
+from pyqtgraph.Qt import QtGui, QtCore
 import multiprocessing as mp
 import numpy as np
+import pyqtgraph as pg
 import queue
 
-class emgPlotter:
-    def __init__(self, q, electrodeNum):
-        self.style()
+from constants import *
 
-        self.drawTime = 10  #only draw the last ten seconds
+# app = QtGui.QApplication([])
+# w = QtGui.QWidget()
+# w.show()
+
+# p = mp.Process(target=app.exec_)
+# p.start
+
+class emgPlotter:
+    def __init__(self, electrodeNum, q):
         self.electrodeNum = electrodeNum
         self.q = q
-        self.fig, self.ax = plt.subplots(int(electrodeNum/2), 2, sharex=True, sharey=True)
-        self.ax = np.transpose(self.ax).flatten()
-        self.line = [self.ax[i].plot([], [])[0] for i in range(electrodeNum)]
-        self.xdata = []
-        self.ydata = [[] for i in range(electrodeNum)]
 
-        self.fig.suptitle("EMG Sensor Data")
-        self.fig.text(0.5, 0.04, "Time", ha='center')
-        self.fig.text(0.04, 0.5, "Normalized Activation Level",
-                va='center', rotation='vertical')
+        self.p = mp.Process(target=self.startGraph,args=(q,))
+        self.p.start()
 
-        for i in range(electrodeNum):
-            self.ax[i].set_title("Electrode "+str(i+1))
+    def close(self):
+        self.p.terminate()
+        self.p.join()
 
-    def startAni(self):
-        self.ani = animation.FuncAnimation(
-        self.fig, self.run, self.data_gen, blit=True, interval=100, repeat=False, init_func=self.setup)
+    def startGraph(self, q):
+        app = QtGui.QApplication([])
+        w = pg.GraphicsWindow(title="EMG Plot")
+        w.setGeometry(0,0,720,600)
+        w.setWindowTitle("EMG Plot")
 
-        mng = plt.get_current_fig_manager() # maximize window, because it doesn't like
-        mng.resize(*mng.window.maxsize())   # being maximized after the fact...
-        plt.show()
+        self.x = np.linspace(0,10,6010)
+        self.y = np.full((8,self.x.size),0.5)
+        # self.ys = np.
+        curves = []
+        plots = []
+        self.start = 0
+        self.stop = 10
 
-    def style(self):
-        plt.style.use('seaborn-darkgrid')   # this graph style looks pretty...
-        matplotlib.rcParams['toolbar'] = 'None'
-
-    def data_gen(self,t=0):  # get data to show on graph from other process
-        while True:
-            tlist = [t+0.1*i/60 for i in range(60)]
-            t += 0.1
-            try:
-                dat = [self.q.get(block=True, timeout=1) for i in range(60)]
-                # there's probably a more efficient way to do this...
-                # pickling and unpickling 60 lists instead of 1 large list seems expensive
-                yield tlist, dat
-            except queue.Empty:
-                break
-
-
-    def setup(self):  # initialize empty graph
-        del self.xdata[:]
+        self.t = 0
 
         for i in range(self.electrodeNum):
-            self.ax[i].set_ylim(0, 1)
-            self.ax[i].set_xlim(0, self.drawTime)
+            plot = w.addPlot(title="Sensor {0}".format(i+1))
+            plot.setMouseEnabled(x=False, y=False)
+            plot.disableAutoRange()
+            plot.showGrid(x=True, y=True)
+            xaxis = plot.getAxis('bottom')
+            xaxis.setTickSpacing(2,2)
+            curves.append(plot.plot(pen='y'))
+            plots.append(plot)
+                
+            if ((i+1) % 2 == 0):
+                w.nextRow()
 
-            del self.ydata[i][:]
+        def update():   # efficiency? where we're going, we don't need efficiency... or understandability
+            dat = [self.q.get(timeout=0.1,block=True) for i in range(60)]
 
-            self.line[i].set_data(self.xdata, self.ydata[i])
+            if self.t >= 100:
+                self.x = self.x + 0.1
+                self.start += 0.1
+                self.stop += 0.1
 
-        return self.line
+                for i in range(self.electrodeNum):
+                    self.y[i,:-60] = self.y[i,60:]
+                    self.y[i,-60:] = [(dat[j][i])/256 for j in range(60)]
 
+            else:
+                for i in range(self.electrodeNum):
+                    self.y[i,self.t*60:(self.t*60+60)] = [(dat[j][i])/256 for j in range(60)]
 
-    def run(self,data):  # redraw graph
-        # update the data
-        t, elec = data
-        self.xdata.extend(t)
-        for i in range(self.electrodeNum):
-            for j in range(60):
-                self.ydata[i].append(elec[j][i]/255)
+            self.t += 1
 
-            self.line[i].set_data(self.xdata, self.ydata[i])
-            xmin, xmax = self.ax[i].get_xlim()
+            if self.t % 100 == 0:
+                dat = [self.q.get(timeout=0.1,block=True) for i in range(10)]   # get the tennish extras that'll have built up
+                for i in range(self.electrodeNum):
+                    self.y[i,-10:] = [(dat[j][i])/256 for j in range(10)]
 
-            if t[-1] >= xmax:
-                xshift = self.drawTime/2
-                self.ax[i].set_xlim(xmin+xshift, xmax+xshift)
-                self.ax[i].figure.canvas.draw()
+            for i in range(self.electrodeNum):
+                curves[i].setData(self.x,self.y[i,:])
+                plots[i].setRange(xRange=(self.start,self.stop),padding=0)
+            
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(update)
+        self.timer.start(100)
 
-        return self.line
+        app.exec_()

@@ -10,16 +10,6 @@ import serial.tools.list_ports
 import struct
 import time
 
-
-def saveData(dat):
-    filename = datetime.datetime.fromtimestamp(
-        time.time()).strftime("%Y%m%d-%H%M%S") + ".mat"
-    filename = "../inputStage-analysis/capturedData/" + filename
-
-    scipy.io.savemat(filename, {'capturedData': dat})
-
-    print("Data saved to", filename)
-
 def getPort():
     ports = list(serial.tools.list_ports.comports())
     port = None
@@ -60,9 +50,11 @@ def capture(q):
                 print("Opening port...")
 
                 startMessage = arduIn.readline().decode('utf-8')
+                while ("Serial OK. Initializing..." in startMessage) != True:
+                    startMessage = arduIn.readline().decode('utf-8')    # keep trying until we get what we want
 
                 q.put("Connection established.")
-                print(startMessage[:-1])
+                print(startMessage)
 
                 capturing = True
 

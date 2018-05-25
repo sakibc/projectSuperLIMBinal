@@ -16,6 +16,7 @@ volatile uint8_t currentInput;
 
 void setup() {
   Serial.begin(BAUDRATE); //any slower than 500000 and the poor arduino can't keep up...
+  // Serial.println("Clearing buffer..."); //the nano with the CH340G likes to send garbage upon startup...
   Serial.println("Serial OK. Initializing...");
 
   DIDR0  = B11111111; //disable digital inputs to reduce noise
