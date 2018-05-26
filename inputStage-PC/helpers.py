@@ -1,9 +1,13 @@
 """ Copyright 2018 Sakib Chowdhury and Claudia Lutfallah
     
 """
-import time
-import datetime
-import scipy.io
+import datetime, time, scipy.io
+import numpy as np
+from constants import *
+
+def reorder(dat):
+    """Take in a chunk of data from the Arduino and separate into a NumPy Array."""
+    return np.array([dat[i::electrodeNum] for i in range(electrodeNum)])
 
 def clearQueue(q):
     while q.empty() == False:

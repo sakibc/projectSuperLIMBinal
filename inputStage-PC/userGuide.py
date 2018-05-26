@@ -20,7 +20,7 @@ def calibration():
 
 def menuPrompt():
     print(
-"""\nSuperLIMBinal sensor-stage interactive test ready.
+"""\nSuperLIMBinal sensor-stage interactive ready.
 Please select an option:
 (1) Calibrate
 (2) Load existing calibration matrix

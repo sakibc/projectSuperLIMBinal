@@ -10,7 +10,7 @@
 
 #TODO: -get rid of magic numbers...
 #      -end calibration if device disconnected
-#      -try switching from matplotlib to pyqtgraph to plot faster...
+#      -make the animation of the graphs driven by data rather than by time?
 
 # Imports
 import time
@@ -22,6 +22,7 @@ import numpy as np
 import emgCapture
 import userGuide
 import calibration
+import monitor
 
 from constants import *
 from helpers import *
@@ -60,13 +61,14 @@ def run(q, deviceConnected=True): # main program logic
             try:
                 W = np.load("calibrationMatrix.npy")
                 calibrated = True
+                print("Calibration matrix loaded.")
             except:
                 print("Error: Calibration matrix not found!")
 
             op = 0
         elif op == 3:
             if calibrated:
-                pass
+                monitor.monitor(q, W)
             else:
                 print("Error: Calibrate or load a calibration matrix first.")
 

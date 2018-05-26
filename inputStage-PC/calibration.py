@@ -24,10 +24,9 @@ def getCalibData(collectionTime, q):
 
     for i in range(int(collectionTime*Fs/blockSamples)):
         sample = q.get(block=True, timeout=0.1)
+        sample = reorder(sample)
         plotq.put(sample)
-
-        for j in range(electrodeNum):
-            dat[j][i:(i+blockSamples)] = sample[j::electrodeNum]
+        dat[:,i:(i+blockSamples)] = sample
 
     plotter.close()
 

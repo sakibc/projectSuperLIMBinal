@@ -43,7 +43,7 @@ class emgPlotter:
         self.start = 0
         self.stop = 10
 
-        self.t = 0
+        self.s = 0
 
         for i in range(self.electrodeNum):
             plot = w.addPlot(title="Sensor {0}".format(i+1))
@@ -58,28 +58,24 @@ class emgPlotter:
             if ((i+1) % 2 == 0):
                 w.nextRow()
 
-        def update():   # efficiency? where we're going, we don't need efficiency... or understandability
-            dat = [self.q.get(timeout=0.1,block=True) for i in range(60)]
+        def update():
+            dat = []
 
-            if self.t >= 100:
-                self.x = self.x + 0.1
+            while q.empty() == False:   # get all the data since the last update
+                dat.append(q.get())
+
+            for sample in dat:
+                if self.s < self.x.size:    # if we're still on the graph, just add data to the matrix
+                    self.y[:,self.s] = (sample[:,0]/256)    # we only need the first sample, our plotting resolution isn't that high
+                    self.s += 1
+                else:   # if we've made it off the graph, also shift the graph to the left slightly
+                    self.y[:,:-1] = self.y[:,1:]
+                    self.y[:,-1] = (sample[:,0]/256)
+
+            if self.s == self.x.size:   # if we're shifting, then adjust the scale to keep the graph in view
+                self.x += 0.1
                 self.start += 0.1
                 self.stop += 0.1
-
-                for i in range(self.electrodeNum):
-                    self.y[i,:-60] = self.y[i,60:]
-                    self.y[i,-60:] = [(dat[j][i])/256 for j in range(60)]
-
-            else:
-                for i in range(self.electrodeNum):
-                    self.y[i,self.t*60:(self.t*60+60)] = [(dat[j][i])/256 for j in range(60)]
-
-            self.t += 1
-
-            if self.t % 100 == 0:
-                dat = [self.q.get(timeout=0.1,block=True) for i in range(10)]   # get the tennish extras that'll have built up
-                for i in range(self.electrodeNum):
-                    self.y[i,-10:] = [(dat[j][i])/256 for j in range(10)]
 
             for i in range(self.electrodeNum):
                 curves[i].setData(self.x,self.y[i,:])
