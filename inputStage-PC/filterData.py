@@ -13,9 +13,9 @@ Q = 35
 bComb, aComb = sig.iirnotch(w0, Q)
 
 # smoothing filter coefficients, from MATLAB
-# it's just a butterworth lowpass with f_c = 4 and -40dB/dec
-sos = [[1,2,1,1,-1.98520158288979,0.985310278158978]]
-g = 2.71738172958892e-05
+# it's just a 2nd order butterworth lowpass with f_c = 4
+sos = [[1, 2, 1, 1, -1.99260754938975, 0.992634773113031]]
+g = 6.8059308200936e-06
 
 
 for i in range(2,7): # remove 5 more harmonics for good measure...

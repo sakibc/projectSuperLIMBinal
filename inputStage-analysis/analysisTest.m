@@ -50,11 +50,11 @@ Ob = length(elecData); % number of observations
 % baseline
 relaxedData = smoothedData(timeStart(1):timeEnd(1),:);
 baselines = mean(relaxedData);
-maxs = [0 0 0 0 0 0 0 0]
+maxs = [0 0 0 0 0 0 0 0];
 
 for i = 1:8
     smoothedData(:,i) = smoothedData(:,i) - baselines(i);
-    maxs(i) = max(smoothedData(:,i))
+    maxs(i) = max(smoothedData(:,i));
     smoothedData(:,i) = smoothedData(:,i)/max(smoothedData(:,i));
 end
 
@@ -90,9 +90,7 @@ windowLen = round(0.1*Fs);
 % window = blackmanharris(windowLen);
 % smoothedData = filter(window,1,elecData);
 
-G = [1.53013955321728e-05;1];
-SOS = [1,2,1,1,-1.98890548163955,0.988966687221676];
-Hd = dfilt.df2sos(SOS,G);
+Hd = myfilter();
 smoothedData = filter(Hd,elecData);
 
 % % baseline
