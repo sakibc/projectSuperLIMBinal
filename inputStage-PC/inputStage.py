@@ -8,9 +8,10 @@
     passed, so it cannot be run indefinitely without running out of memory.
 """
 
-#TODO: -get rid of magic numbers...
+#TODO:
 #      -end calibration if device disconnected
-#      -make the animation of the graphs driven by data rather than by time?
+#      -make it more robust, if the window is closed or keyboard interrupt etc.
+#       cause right now erroring is really the only way it exits...
 
 # Imports
 import time
@@ -20,16 +21,22 @@ import multiprocessing as mp
 import numpy as np
 
 import emgCapture
+import emgPlot
 import userGuide
 import calibration
 import monitor
 
-from constants import *
-from helpers import *
+from constants import electrodeNum, synergyNum
 
 def run(q, deviceConnected=True): # main program logic
     op = 0
-    W = np.zeros((8,4))
+
+    W = np.zeros((electrodeNum,synergyNum))
+    baselines = np.zeros(electrodeNum)
+    maxes = np.full(electrodeNum,256*256)
+
+    plotter = emgPlot.plotManager()
+
     calibrated = False
 
     while True:
@@ -43,15 +50,22 @@ def run(q, deviceConnected=True): # main program logic
                 pass
 
         elif op == 1 and deviceConnected: # calibrate
-            W = calibration.calibrate(q)
+            W, baselines, maxes = calibration.calibrate(q, plotter)
             calibrated = True
 
             print("\nCalibration complete. Synergy matrix W:")
             print(W)
+            print("\nBaselines:")
+            print(baselines)
+            print("\nMax values:")
+            print(maxes)
+
             toSave = input("\nWould you like to save this matrix? (y/n): ")
 
             if toSave == "y":
                 np.save("calibrationMatrix.npy",W)
+                np.save("baselines.npy", baselines)
+                np.save("maxes.npy",maxes)
                 print("Matrix saved.")
             else:
                 print("Matrix not saved.")
@@ -60,21 +74,23 @@ def run(q, deviceConnected=True): # main program logic
         elif op == 2: # load
             try:
                 W = np.load("calibrationMatrix.npy")
+                baselines = np.load("baselines.npy")
+                maxes = np.load("maxes.npy")
                 calibrated = True
                 print("Calibration matrix loaded.")
             except:
                 print("Error: Calibration matrix not found!")
 
             op = 0
-        elif op == 3:
+        elif op == 3 and deviceConnected:
             if calibrated:
-                monitor.monitor(q, W)
+                monitor.monitor(q, W, baselines, maxes, plotter)
             else:
                 print("Error: Calibrate or load a calibration matrix first.")
 
             op = 0
         elif op == 4: # run test
-            W = calibration.calibrate(q, True)
+            W = calibration.calibrate(q, plotter, testmode=True)
             print(W)
             op = 0
         elif op == 5: # quit

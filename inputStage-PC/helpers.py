@@ -3,7 +3,7 @@
 """
 import datetime, time, scipy.io
 import numpy as np
-from constants import *
+from constants import electrodeNum
 
 def reorder(dat):
     """Take in a chunk of data from the Arduino and separate into a NumPy Array."""

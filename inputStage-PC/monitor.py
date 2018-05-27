@@ -2,20 +2,37 @@
     
 """
 import multiprocessing as mp
-import emgPlot
+import filterData
 
 from helpers import *
 from constants import *
 
-def monitor(q, W):
-    clearQueue(q)
+def monitor(q, W, baselines, maxes, plotter):
+    print("Calculating inverse...")
+    Winv = np.linalg.pinv(W)
+    print("Inverse matrix calculated.")
 
-    plotq = mp.Queue()
-    plotter = emgPlot.emgPlotter(electrodeNum, plotq)
+    print("Starting graphs...")
+    plotter.startEmg()
+    plotter.startSyn()
+
+    filter = filterData.liveFilter()
+    
+    clearQueue(q)
 
     while True:
         sample = q.get(block=True, timeout=0.1)
         sample = reorder(sample)
-        plotq.put(sample)
+        sample = filter.prep(sample)
 
-    plotter.close()
+        for i in range(electrodeNum):
+            sample[i,:] -= baselines[i]
+            sample[i,:] /= maxes[i]
+
+        activation = np.matmul(Winv,sample)
+
+        plotter.sendEmg(sample)
+        plotter.sendSyn(activation)
+
+    plotter.stopEmg()
+    plotter.stopSyn()

@@ -11,28 +11,28 @@ import emgPlot
 import filterData
 import userGuide
 
-from helpers import *
+from helpers import clearQueue, reorder, saveData
 from constants import *
 
-def getCalibData(collectionTime, q):
+def getCalibData(collectionTime, q, plotter):
     dat = np.zeros((electrodeNum,collectionTime*Fs))
 
-    plotq = mp.Queue()
-    plotter = emgPlot.emgPlotter(electrodeNum, plotq)
+    plotter.startEmg()
 
     clearQueue(q)  # let's empty the queue first so we can grab some fresh data
 
     for i in range(int(collectionTime*Fs/blockSamples)):
         sample = q.get(block=True, timeout=0.1)
         sample = reorder(sample)
-        plotq.put(sample)
-        dat[:,i:(i+blockSamples)] = sample
+        plotter.sendEmg(sample/256)
+        index = i*blockSamples
+        dat[:,(index):(index+blockSamples)] = sample
 
-    plotter.close()
+    plotter.stopEmg()
 
     return dat
 
-def calibrate(q, testmode=False):
+def calibrate(q, plotter, testmode=False):
     W = np.ones((electrodeNum, synergyNum))
 
     if testmode:
@@ -45,10 +45,12 @@ def calibrate(q, testmode=False):
         promptp = mp.Process(target=userGuide.calibration)
 
         promptp.start()
-        caliData = getCalibData(45, q)   # capture 45 seconds of data
+        caliData = getCalibData(45, q, plotter)   # capture 45 seconds of data
         promptp.join()
 
         print("Processing data...")
+
+    saveData(caliData)
 
     caliData = filterData.longPrep(caliData)
 
@@ -61,10 +63,12 @@ def calibrate(q, testmode=False):
 
     relaxed = caliData[:,timeStart[0]:timeEnd[0]]
     baselines = np.mean(relaxed,-1)
-   
+    maxes = np.ones(electrodeNum)
+
     for i in range(8):  # normalize signals
        caliData[i,:] -= baselines[i]
-       caliData[i,:] /= (caliData[i,:]).max()
+       maxes[i] = (caliData[i, :]).max()
+       caliData[i,:] /= maxes[i]
 
     caliData = np.clip(caliData,0,1)
 
@@ -89,4 +93,4 @@ def calibrate(q, testmode=False):
     W = np.concatenate( # put it all together
         (W0*(H0[0]).max(), W1*(H1[0]).max(), W2*(H2[0]).max(), W3*(H3[0]).max()), axis=1)
 
-    return W    # it works!
+    return (W, baselines, maxes)    # it works!

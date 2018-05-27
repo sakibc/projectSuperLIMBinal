@@ -50,9 +50,11 @@ Ob = length(elecData); % number of observations
 % baseline
 relaxedData = smoothedData(timeStart(1):timeEnd(1),:);
 baselines = mean(relaxedData);
+maxs = [0 0 0 0 0 0 0 0]
 
 for i = 1:8
     smoothedData(:,i) = smoothedData(:,i) - baselines(i);
+    maxs(i) = max(smoothedData(:,i))
     smoothedData(:,i) = smoothedData(:,i)/max(smoothedData(:,i));
 end
 
@@ -84,16 +86,23 @@ for i = 1:6 % comb filter? get rid of that mains hum...
 end
 
 elecData = elecData.^2;
-windowLen = round(0.01*Fs);
-smoothedData = filter(window,1,elecData);
+windowLen = round(0.1*Fs);
+% window = blackmanharris(windowLen);
+% smoothedData = filter(window,1,elecData);
 
-% baseline
-relaxedData = smoothedData(timeStart(1):timeEnd(1),:);
-baselines = mean(relaxedData);
+G = [1.53013955321728e-05;1];
+SOS = [1,2,1,1,-1.98890548163955,0.988966687221676];
+Hd = dfilt.df2sos(SOS,G);
+smoothedData = filter(Hd,elecData);
+
+% % baseline
+% relaxedData = smoothedData(timeStart(1):timeEnd(1),:);
+% baselines = mean(relaxedData);
 
 for i = 1:8
     smoothedData(:,i) = smoothedData(:,i) - baselines(i);
-    smoothedData(:,i) = smoothedData(:,i)/max(smoothedData(:,i));
+    smoothedData(:,i) = smoothedData(:,i)/maxs(i);
+
 end
 
 F = smoothedData/W.';
