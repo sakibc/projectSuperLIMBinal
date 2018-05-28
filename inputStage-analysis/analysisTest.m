@@ -9,14 +9,33 @@ load capturedData/set3;
 elecData = elecData.' - 128; % centre amplitude on 0
 Fs = 4808;
 
-for i = 1:6 % comb filter? get rid of that mains hum...
-    wo = i*60/(Fs/2); bw = wo/35; % notch filter to remove 60Hz noise
-    [b,a] = iirnotch(wo,bw);
+wo = 60/(Fs/2); bw = wo/35;
+[num,den] = iirnotch(wo,bw);
 
-    elecData = filtfilt(b,a,elecData);
+for i = 2:6 % generate comb filter to remove mains hum
+    wo = i*60/(Fs/2); bw = wo/35; % need to remove 60 Hz and higher harmonics
+    [b,a] = iirnotch(wo,bw);
+    num = conv(num,b);
+    den = conv(den,a);
 end
 
+% padLength = 32*ceil(length(elecData)/32) - length(elecData);
+% elecData = [elecData; zeros(16,8)];
+% zif = zeros(1,12);
+% test = zeros(size(elecData));
+% 
+% for i = 1:32:length(elecData) % just testing I guess...
+%     sample = elecData(i:i+31,:);
+%     [y, zif] = filter(num,den,sample,zif);
+%     test(i:i+31,:) = y;
+% end
+
+% elecData = test;
+
+elecData = filtfilt(num,den,elecData);
+
 elecData = elecData.^2;
+
 windowLen = round(0.5*Fs);
 window = ones(1,windowLen)/windowLen;
 smoothedData = filter(window,1,elecData);
@@ -31,9 +50,11 @@ Ob = length(elecData); % number of observations
 % baseline
 relaxedData = smoothedData(timeStart(1):timeEnd(1),:);
 baselines = mean(relaxedData);
+maxs = [0 0 0 0 0 0 0 0];
 
 for i = 1:8
     smoothedData(:,i) = smoothedData(:,i) - baselines(i);
+    maxs(i) = max(smoothedData(:,i));
     smoothedData(:,i) = smoothedData(:,i)/max(smoothedData(:,i));
 end
 
@@ -65,17 +86,24 @@ for i = 1:6 % comb filter? get rid of that mains hum...
 end
 
 elecData = elecData.^2;
-smoothedData = filter(window,1,elecData);
+windowLen = round(0.1*Fs);
+% window = blackmanharris(windowLen);
+% smoothedData = filter(window,1,elecData);
 
-% baseline
-relaxedData = smoothedData(timeStart(1):timeEnd(1),:);
-baselines = mean(relaxedData);
+Hd = myfilter();
+smoothedData = filter(Hd,elecData);
+
+% % baseline
+% relaxedData = smoothedData(timeStart(1):timeEnd(1),:);
+% baselines = mean(relaxedData);
 
 for i = 1:8
     smoothedData(:,i) = smoothedData(:,i) - baselines(i);
-    smoothedData(:,i) = smoothedData(:,i)/max(smoothedData(:,i));
+    smoothedData(:,i) = smoothedData(:,i)/maxs(i);
+
 end
 
 F = smoothedData/W.';
+
 F(F<0) = 0;
 

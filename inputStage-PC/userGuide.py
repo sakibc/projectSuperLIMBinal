@@ -3,13 +3,8 @@
 """
 import time
 
-def prompt():
-    print("Letting the graph start up...")
-    time.sleep(0.2)
-    print("Starting calibration. Please follow the instructions as they appear.")
-    time.sleep(3.8) # calibration start time, 4 seconds in
-
-    movements = ["Rest","Open Hand","Close Hand","Pronate","Supinate","Pronate Open","Pronate Close","Supinate Open","Supinate Close"]
+def calibration():
+    movements = ["Rest position","Open Hand","Close Hand","Pronate","Supinate"]
 
     for movement in movements:
         print("\nReady? Next movement:",movement)
@@ -22,3 +17,16 @@ def prompt():
         time.sleep(2)
 
     print('Calibration data set collection complete.\n')
+
+def menuPrompt():
+    print(
+"""\nSuperLIMBinal sensor-stage interactive ready.
+Please select an option:
+(1) Calibrate
+(2) Load existing calibration matrix
+(3) Live synergy monitor
+(4) Run test
+(5) Exit\n""")
+
+def endMessage():
+    print("Thank you for choosing Project SuperLIMBinal.")

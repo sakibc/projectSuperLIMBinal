@@ -5,10 +5,11 @@ name = "pypi"
 
 [packages]
 pyserial = "*"
-matplotlib = "*"
 numpy = "*"
 "pyqt5" = "*"
 scipy = "*"
+scikit-learn = "*"
+pyqtgraph = "*"
 
 [dev-packages]
 pylint = "*"
