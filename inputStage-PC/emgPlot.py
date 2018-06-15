@@ -1,89 +1,214 @@
 """ Copyright 2018 Sakib Chowdhury and Claudia Lutfallah
     
 """
-import matplotlib       # change drawing backend so that a framework version of
-matplotlib.use('tkagg') # python is not necessary on mac.
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 
+from pyqtgraph.Qt import QtGui, QtCore
 import multiprocessing as mp
 import numpy as np
+import pyqtgraph as pg
 import queue
+import inputStage
 
-class emgPlotter:
-    def __init__(self, q, electrodeNum):
-        self.style()
+from constants import *
 
-        self.drawTime = 10  #only draw the last ten seconds
-        self.electrodeNum = electrodeNum
+# app = QtGui.QApplication([])
+# w = QtGui.QWidget()
+# w.show()
+
+# p = mp.Process(target=app.exec_)
+# p.start
+
+class plotManager:
+    def __init__(self):
+        self.q = mp.Queue()
+        self.qapp = mp.Process(target=self.runApp, args=(self.q,))
+        self.qapp.start()
+
+    def runApp(self,q):
+        app = QtGui.QApplication([])
+
+        self.eq = mp.Queue()
+        self.emgPlotter = emgPlotter(self.eq)
+        self.sq = mp.Queue()
+        self.synPlotter = synergyPlotter(self.sq)
+
+        def check():
+            ops = []
+            while q.empty() == False:
+                ops.append(q.get(block=True))
+
+            for bundle in ops:
+                target = bundle[0]
+
+                if target == "emg-start":
+                    self.emgPlotter.startGraph()
+                elif target == "syn-start":
+                    self.synPlotter.startGraph()
+                elif target == "emg-stop":
+                    self.emgPlotter.close()
+                elif target == "syn-stop":
+                    self.synPlotter.close()
+                elif target == "emg-send":
+                    self.eq.put(bundle[1])
+                elif target == "syn-send":
+                    self.sq.put(bundle[1])
+
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(check)
+        self.timer.start(10)
+
+        app.exec_()
+
+    def startEmg(self):
+        self.q.put(("emg-start",))
+    def startSyn(self):
+        self.q.put(("syn-start",))
+    def stopEmg(self):
+        self.q.put(("emg-stop",))
+    def stopSyn(self):
+        self.q.put(("syn-stop",))
+    def sendEmg(self, dat):
+        self.q.put(("emg-send",dat))
+    def sendSyn(self, dat):
+        self.q.put(("syn-send",dat))
+        
+class plotWindow(pg.GraphicsWindow):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def closeEvent(self, event):
+
+        event.accept()
+
+class plotter:
+    def __init__(self, q):
         self.q = q
-        self.fig, self.ax = plt.subplots(int(electrodeNum/2), 2, sharex=True, sharey=True)
-        self.ax = np.transpose(self.ax).flatten()
-        self.line = [self.ax[i].plot([], [])[0] for i in range(electrodeNum)]
-        self.xdata = []
-        self.ydata = [[] for i in range(electrodeNum)]
+        self.initialize()
+        self.w = plotWindow(title=self.title)
+        self.w.setGeometry(self.posx, self.posy, self.width, self.height)
+        self.w.setWindowTitle(self.title)
 
-        self.fig.suptitle("EMG Sensor Data")
-        self.fig.text(0.5, 0.04, "Time", ha='center')
-        self.fig.text(0.04, 0.5, "Normalized Activation Level",
-                va='center', rotation='vertical')
+        self.curves = []
+        self.plots = []
+        self.setupPlots(self.w, self.curves, self.plots)
 
+    def close(self):
+        self.timer.stop()
+
+    def createAxesData(self):
+        x = np.linspace(0, 10, 10*Fs/blockSamples)
+        y = np.full((electrodeNum, x.size), 0.5)
+        return (x, y)
+    
+    def initialize(self):
+        self.title = "Base Plotter Class"
+        self.width = 720
+        self.height = 600
+        self.posx = 0
+        self.posy = 0
+        self.yRange = (0,1)
+
+    def setupPlots(self, w, curves, plots):
         for i in range(electrodeNum):
-            self.ax[i].set_title("Electrode "+str(i+1))
+            plot = w.addPlot(title="Sensor {0}".format(i+1))
+            
+            curves.append(plot.plot(pen='y'))
+            plots.append(plot)
 
-    def startAni(self):
-        self.ani = animation.FuncAnimation(
-        self.fig, self.run, self.data_gen, blit=True, interval=100, repeat=False, init_func=self.setup)
+            if ((i+1) % 2 == 0):
+                w.nextRow()
 
-        mng = plt.get_current_fig_manager() # maximize window, because it doesn't like
-        mng.resize(*mng.window.maxsize())   # being maximized after the fact...
-        plt.show()
+    def startGraph(self):
+        self.x, self.y = self.createAxesData()
 
-    def style(self):
-        plt.style.use('seaborn-darkgrid')   # this graph style looks pretty...
-        matplotlib.rcParams['toolbar'] = 'None'
+        for plot in self.plots:
+            plot.setMouseEnabled(x=False, y=False)
+            plot.disableAutoRange()
+            plot.showGrid(x=True, y=True)
+            plot.setRange(yRange=self.yRange)
+            xaxis = plot.getAxis('bottom')
+            xaxis.setTickSpacing(2, 2)
 
-    def data_gen(self,t=0):  # get data to show on graph from other process
-        while True:
-            tlist = [t+0.1*i/60 for i in range(60)]
-            t += 0.1
-            try:
-                dat = [self.q.get(block=True, timeout=1) for i in range(60)]
-                # there's probably a more efficient way to do this...
-                # pickling and unpickling 60 lists instead of 1 large list seems expensive
-                yield tlist, dat
-            except queue.Empty:
-                break
+        self.start = 0
+        self.stop = 10
+
+        self.s = 0
+
+        def update():
+            dat = []
+
+            while self.q.empty() == False:   # get all the data since the last update
+                dat.append(self.q.get())
+
+            for sample in dat:
+                if self.s < self.x.size:    # if we're still on the graph, just add data to the matrix
+                    # we only need the first sample, our plotting resolution isn't that high
+                    self.y[:, self.s] = (sample[:, 0])
+                    self.s += 1
+                else:   # if we've made it off the graph, also shift the graph to the left slightly
+                    self.y[:, :-1] = self.y[:, 1:]
+                    self.y[:, -1] = (sample[:, 0])
+
+            if self.s == self.x.size:   # if we're shifting, then adjust the scale to keep the graph in view
+                self.x += 0.1
+                self.start += 0.1
+                self.stop += 0.1
+
+            for i in range(len(self.curves)):
+                self.curves[i].setData(self.x, self.y[i, :])
+                self.plots[i].setRange(xRange=(self.start, self.stop), padding=0)
+
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(update)
+        self.timer.start(100)
 
 
-    def setup(self):  # initialize empty graph
-        del self.xdata[:]
+class emgPlotter(plotter):
+    def initialize(self):
+        self.title = "EMG Plot"
+        self.width = 720
+        self.height = 556
+        self.posx = 0
+        self.posy = 0
+        self.yRange = (0, 1)
 
-        for i in range(self.electrodeNum):
-            self.ax[i].set_ylim(0, 1)
-            self.ax[i].set_xlim(0, self.drawTime)
+    def createAxesData(self):
+        x = np.linspace(0, 10, 10*Fs/blockSamples)
+        y = np.full((electrodeNum, x.size), 0.5)
+        return (x, y)
 
-            del self.ydata[i][:]
+    def setupPlots(self, w, curves, plots):
+        for i in range(electrodeNum):
+            plot = w.addPlot(title="Sensor {0}".format(i+1))
 
-            self.line[i].set_data(self.xdata, self.ydata[i])
+            curves.append(plot.plot(pen='y'))
+            plots.append(plot)
 
-        return self.line
+            if ((i+1) % 2 == 0):
+                w.nextRow()
+    
 
+class synergyPlotter(plotter):
+    def initialize(self):
+        self.title = "Synergy Activation"
+        self.width = 720
+        self.height = 278
+        self.posx = 0
+        self.posy = 622
+        self.yRange = (0, 1)
 
-    def run(self,data):  # redraw graph
-        # update the data
-        t, elec = data
-        self.xdata.extend(t)
-        for i in range(self.electrodeNum):
-            for j in range(60):
-                self.ydata[i].append(elec[j][i]/255)
+    def createAxesData(self):
+        x = np.linspace(0, 10, 10*Fs/blockSamples)
+        y = np.full((synergyNum, x.size), 0.5)
+        return (x, y)
 
-            self.line[i].set_data(self.xdata, self.ydata[i])
-            xmin, xmax = self.ax[i].get_xlim()
+    def setupPlots(self, w, curves, plots):
+        synergies = ["Hand Open", "Hand Close", "Pronation", "Supination"]
+        for i in range(synergyNum):
+            plot = w.addPlot(title=synergies[i])
 
-            if t[-1] >= xmax:
-                xshift = self.drawTime/2
-                self.ax[i].set_xlim(xmin+xshift, xmax+xshift)
-                self.ax[i].figure.canvas.draw()
+            curves.append(plot.plot(pen='r'))
+            plots.append(plot)
 
-        return self.line
+            if ((i+1) % 2 == 0):
+                w.nextRow()
