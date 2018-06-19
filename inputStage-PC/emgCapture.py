@@ -15,9 +15,7 @@ def getPort():
     port = None
 
     for p in ports:
-        if "Arduino" in p[1]:
-            port = p[0]
-        elif "CDC" in p[1]:  # let's just grab one and see what happens...
+        if "CDC" in p[1]:  # let's just grab one and see what happens...
             port = p[0]
         elif "USB2.0-Serial" in p[1]:
             port = p[0]

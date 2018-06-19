@@ -16,6 +16,7 @@
 # Imports
 import time
 import sys
+sys.path.append('../')
 
 import multiprocessing as mp
 import numpy as np
