@@ -9,6 +9,9 @@ load capturedData/set3;
 elecData = elecData.' - 128; % centre amplitude on 0
 Fs = 4808;
 
+butterlo = lowOnButter();
+elecData = filter(butterlo,elecData);
+
 wo = 60/(Fs/2); bw = wo/35;
 [num,den] = iirnotch(wo,bw);
 
@@ -78,6 +81,8 @@ W = [W1*maxes(1),W2*maxes(2),W3*maxes(3),W4*maxes(4)];  % is this it? did I win?
 load capturedData/set2; % cross validation set, loaded in as elecData
 
 elecData = elecData.' - 128; % centre amplitude on 0
+elecData = filter(butterlo,elecData);
+
 for i = 1:6 % comb filter? get rid of that mains hum...
     wo = i*60/(Fs/2); bw = wo/35; % notch filter to remove 60Hz noise
     [b,a] = iirnotch(wo,bw);
