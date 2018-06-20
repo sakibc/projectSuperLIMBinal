@@ -3,11 +3,10 @@ import serial
 import struct
 import time
 
-def packData(dat):  # pack data into a uint16_t to send
+def packSynActivation(dat):  # pack data into a uint16_t to send
     return struct.pack('>H',dat)    # the arduino expects a number between 0 and 1000
 
 def move(q):
-    pos = 0
 
     with serial.Serial("/dev/cu.usbmodem1411",115200,timeout=1,write_timeout=1) as arduOut:
         print("Connecting to arm...")
@@ -27,16 +26,10 @@ def move(q):
             moving = False
 
         while moving:
-            # movements = q.get()
-            dat = packData(pos)
-            arduOut.write(dat)
-            pos += 1
-            time.sleep(0.01)
-            if pos > 1000:
-                pos = 1
-                dat = packData(0)
+            movements = (q.get()*1000).astype(int)
+            for movement in movements[0]:
+                dat = packSynActivation(movement)
                 arduOut.write(dat)
-                time.sleep(10)
 
 if __name__ == "__main__":
     move(None)
