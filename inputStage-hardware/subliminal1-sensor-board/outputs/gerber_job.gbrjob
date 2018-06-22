@@ -1,0 +1,13 @@
+G04 Gerber job file.*
+%TF.FileFunction,JobInfo*%
+%TF.GenerationSoftware,Autodesk,EAGLE,9.0.1*%
+%TF.CreationDate,2018-06-21T02:26:47Z*%
+%TF.Part,Single*%
+%MOMM*%
+%TJ.B_Owner,Sakib Chowdhury <hi.im.sakib@gmail.com>*%
+%TJ.B_ID,EMGSensorArray*%
+%TJ.B_LayerNum,2*%
+%TJ.B_Thickness,1.570000*%
+%TJ.B_Size_X,50.800000*%
+%TJ.B_Size_Y,25.400000*%
+M02*
