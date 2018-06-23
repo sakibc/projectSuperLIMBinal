@@ -110,3 +110,5 @@ inputStage-analysis/capturedData
 inputStage-PC/maxes.npy
 inputStage-PC/baselines.npy
 inputStage-PC/calibrationMatrix.npy
+
+inputStage-analysis/nmfv1_4
