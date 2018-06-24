@@ -1,8 +1,10 @@
-#include <Servo.h>
+#include <Wire.h>
+#include <Adafruit_PWMServoDriver.h>
+
+Adafruit_PWMServoDriver servos = Adafruit_PWMServoDriver();
 
 uint16_t syn0;
 int servoPos = 0;
-Servo myServo;
 
 uint16_t readUnsignedInt() {
   uint8_t dataBuffer[2];
@@ -15,6 +17,9 @@ void setup() {
   Serial.begin(115200);
   myServo.write(servoPos);
   Serial.println("Serial OK");
+
+  servos.begin();
+  
 }
 
 void loop() {
