@@ -4,8 +4,8 @@ import struct
 import time
 import numpy as np
 
-def packSynActivation(dat):  # pack data into a uint16_t to send
-    return struct.pack('>H',dat)    # the arduino expects a number between 0 and 1000
+def packSynActivation(dat):  # pack data into uint16_t's to send
+    return struct.pack('>'+'H'*len(dat),*dat)    # the arduino expects a number between 0 and 1000
 
 def move(q):
     b = 0.4 # threshold of difference required in syn. activation and
