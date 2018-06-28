@@ -7,7 +7,6 @@ import scipy.io
 from sklearn.decomposition import NMF
 import time
 
-import emgPlot
 import filterData
 import userGuide
 
