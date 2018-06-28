@@ -34,6 +34,14 @@ notPi = (isPi == False)
 
 if notPi:
     import emgPlot
+else:
+    from flask import Flask
+
+    app = Flask(__name__)
+
+    @app.route('/')
+    def hello_world():
+        return 'Hello, World!'
 
 from constants import electrodeNum, synergyNum
 
@@ -45,12 +53,24 @@ def run(q, deviceConnected=True): # main program logic
     baselines = np.zeros(electrodeNum)
     maxes = np.full(electrodeNum,256*256)
 
-    if notPi:
-        plotter = emgPlot.plotManager()
+    # if is pi, start up webserver and treat it as the plotter, input, and output
+    # it's not worth the time to design it better to work nicely in both modes
+    # so I'll just rewrite a lot of the non-interactive mode here
+    # start a queue to get commands from the server
+    # every cycle, get a command from the queue
+    # if it's valid, enter a mode and tell the webserver that it's all good
+
+    # if not a pi, start up emgplot and treat it as the plotter
+    # get a command from the input queue
 
     calibrated = False
 
-    if notPi:   # interactive main loop
+    if isPi:
+        app.run()
+
+    elif notPi:   # interactive main loop
+        plotter = emgPlot.plotManager()
+    
         while True:
             if op == 0:
                 userGuide.menuPrompt()
@@ -119,20 +139,20 @@ if __name__ == "__main__":
     #data capture process so that it's not blocked by program logic.
 
     if isPi:
-        print("Starting Project SuperLIMBinal in headless mode.")
+        print("Starting Project SuperLIMBinal in headless mode...")
     else:
-        print("Starting Project SuperLIMBinal in interactive mode.")
+        print("Starting Project SuperLIMBinal in interactive mode...")
 
-    print("Connecting to device...")        
+    print("\nConnecting to device...")        
     p.start()
     message = q.get()
 
-    if message == "Connection established.":
+    if message == "Connection established.\n":
         print(message)
         run(q)
 
     else:
-        print("Connection failed!")
+        print("Connection failed!\n")
         run(q,False)
 
     p.terminate()
