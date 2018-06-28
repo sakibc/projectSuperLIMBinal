@@ -22,12 +22,21 @@ import multiprocessing as mp
 import numpy as np
 
 import emgCapture
-import emgPlot
+
 import userGuide
 import calibration
 import monitor
 
+import platform
+
+isPi = (platform.machine() == 'armv7l')
+notPi = (isPi == False)
+
+if notPi:
+    import emgPlot
+
 from constants import electrodeNum, synergyNum
+
 
 def run(q, deviceConnected=True): # main program logic
     op = 0
@@ -36,7 +45,8 @@ def run(q, deviceConnected=True): # main program logic
     baselines = np.zeros(electrodeNum)
     maxes = np.full(electrodeNum,256*256)
 
-    plotter = emgPlot.plotManager()
+    if notPi():
+        plotter = emgPlot.plotManager()
 
     calibrated = False
 

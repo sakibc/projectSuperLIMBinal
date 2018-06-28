@@ -1,13 +1,15 @@
 """ Copyright 2018 Sakib Chowdhury and Claudia Lutfallah
     
 """
+import inputStage
 
 from pyqtgraph.Qt import QtGui, QtCore
+import pyqtgraph as pg
+
 import multiprocessing as mp
 import numpy as np
-import pyqtgraph as pg
 import queue
-import inputStage
+
 
 from constants import *
 
