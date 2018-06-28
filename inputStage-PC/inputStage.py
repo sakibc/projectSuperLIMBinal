@@ -50,72 +50,78 @@ def run(q, deviceConnected=True): # main program logic
 
     calibrated = False
 
-    while True:
-        if op == 0:
-            userGuide.menuPrompt()
-            op = input("Option: ")
-            try:
-                tmp = int(op)
-                op = tmp
-            except:
-                pass
+    if notPi:   # interactive main loop
+        while True:
+            if op == 0:
+                userGuide.menuPrompt()
+                op = input("Option: ")
+                try:
+                    tmp = int(op)
+                    op = tmp
+                except:
+                    pass
 
-        elif op == 1 and deviceConnected: # calibrate
-            W, baselines, maxes = calibration.calibrate(q, plotter)
-            calibrated = True
-
-            print("\nCalibration complete. Synergy matrix W:")
-            print(W)
-            print("\nBaselines:")
-            print(baselines)
-            print("\nMax values:")
-            print(maxes)
-
-            toSave = input("\nWould you like to save this matrix? (y/n): ")
-
-            if toSave == "y":
-                np.save("calibrationMatrix.npy",W)
-                np.save("baselines.npy", baselines)
-                np.save("maxes.npy",maxes)
-                print("Matrix saved.")
-            else:
-                print("Matrix not saved.")
-
-            op = 0
-        elif op == 2: # load
-            try:
-                W = np.load("calibrationMatrix.npy")
-                baselines = np.load("baselines.npy")
-                maxes = np.load("maxes.npy")
+            elif op == 1 and deviceConnected: # calibrate
+                W, baselines, maxes = calibration.calibrate(q, plotter)
                 calibrated = True
-                print("Calibration matrix loaded.")
-            except:
-                print("Error: Calibration matrix not found!")
 
-            op = 0
-        elif op == 3 and deviceConnected:
-            if calibrated:
-                monitor.monitor(q, W, baselines, maxes, plotter)
+                print("\nCalibration complete. Synergy matrix W:")
+                print(W)
+                print("\nBaselines:")
+                print(baselines)
+                print("\nMax values:")
+                print(maxes)
+
+                toSave = input("\nWould you like to save this matrix? (y/n): ")
+
+                if toSave == "y":
+                    np.save("calibrationMatrix.npy",W)
+                    np.save("baselines.npy", baselines)
+                    np.save("maxes.npy",maxes)
+                    print("Matrix saved.")
+                else:
+                    print("Matrix not saved.")
+
+                op = 0
+            elif op == 2: # load
+                try:
+                    W = np.load("calibrationMatrix.npy")
+                    baselines = np.load("baselines.npy")
+                    maxes = np.load("maxes.npy")
+                    calibrated = True
+                    print("Calibration matrix loaded.")
+                except:
+                    print("Error: Calibration matrix not found!")
+
+                op = 0
+            elif op == 3 and deviceConnected:
+                if calibrated:
+                    monitor.monitor(q, W, baselines, maxes, plotter)
+                else:
+                    print("Error: Calibrate or load a calibration matrix first.")
+
+                op = 0
+            elif op == 4: # run test
+                W = calibration.calibrate(q, plotter, testmode=True)
+                print(W)
+                op = 0
+            elif op == 5: # quit
+                break
             else:
-                print("Error: Calibrate or load a calibration matrix first.")
+                print("Invalid command.\n")
+                op = 0
 
-            op = 0
-        elif op == 4: # run test
-            W = calibration.calibrate(q, plotter, testmode=True)
-            print(W)
-            op = 0
-        elif op == 5: # quit
-            userGuide.endMessage()
-            break
-        else:
-            print("Invalid command.\n")
-            op = 0
-
+    userGuide.endMessage()
 
 if __name__ == "__main__":
     q = mp.Queue(60)   # let a maximum of ~100ms of data pile up in the queue
     p = mp.Process(target=emgCapture.capture, args=(q,))
     #data capture process so that it's not blocked by program logic.
+
+    if isPi:
+        print("Starting Project SuperLIMBinal in headless mode.")
+    else:
+        print("Starting Project SuperLIMBinal in interactive mode.")
 
     print("Connecting to device...")        
     p.start()
@@ -128,7 +134,6 @@ if __name__ == "__main__":
     else:
         print("Connection failed!")
         run(q,False)
-        sys.exit()
 
     p.terminate()
     p.join()
