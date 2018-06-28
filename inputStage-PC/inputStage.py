@@ -66,7 +66,7 @@ def run(q, deviceConnected=True): # main program logic
     calibrated = False
 
     if isPi:
-        app.run()
+        app.run(host='0.0.0.0') # insecure, but it works for now
 
     elif notPi:   # interactive main loop
         plotter = emgPlot.plotManager()
