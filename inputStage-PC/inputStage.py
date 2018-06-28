@@ -45,7 +45,7 @@ def run(q, deviceConnected=True): # main program logic
     baselines = np.zeros(electrodeNum)
     maxes = np.full(electrodeNum,256*256)
 
-    if notPi():
+    if notPi:
         plotter = emgPlot.plotManager()
 
     calibrated = False
