@@ -25,7 +25,9 @@ def monitor():
 @app.route('/shutdown')
 def shutdown():
     if (platform.machine() == 'armv7l'):
-        call("sleep 1s; sudo shutdown -h now", shell=True)
+        shutdownProcess = mp.Process(target=poweroffPi)
+        shutdownProcess.start()
+        shutdownProcess.join()
 
     return render_template('shutdown.html')
 
@@ -40,3 +42,10 @@ def runApp():
 #     appProcess = mp.Process(target=runApp, args=(q,))
 #     appProcess.start()
 #     appProcess.join()
+
+def poweroffPi():
+    # run this in another process to shutdown the pi
+    # after sending the user a shutdown message
+
+    sleep(1)
+    call("sudo poweroff", shell=True)
