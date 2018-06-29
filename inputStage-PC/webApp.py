@@ -7,6 +7,7 @@ from subprocess import call
 
 import multiprocessing as mp
 import platform
+import time
 
 app = Flask(__name__)
 
@@ -47,5 +48,5 @@ def poweroffPi():
     # run this in another process to shutdown the pi
     # after sending the user a shutdown message
 
-    sleep(1)
+    time.sleep(1)
     call("sudo poweroff", shell=True)
