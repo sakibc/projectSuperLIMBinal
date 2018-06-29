@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block head %}
+<title>Powering off...</title>
+<link rel="stylesheet" href={{ url_for('static',filename='shutdown.css') }} />
+{% endblock %}
+
+{% block content %}
+<p>It's now safe to turn off your</p>
+<p>Subliminal Sensor System.</p>
+{% endblock %}
+{% block footer %}
+{% endblock %}

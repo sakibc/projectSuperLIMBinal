@@ -30,18 +30,13 @@ import monitor
 import platform
 
 isPi = (platform.machine() == 'armv7l')
+# isPi = True # for dev purposes
 notPi = (isPi == False)
 
 if notPi:
     import emgPlot
 else:
-    from flask import Flask
-
-    app = Flask(__name__)
-
-    @app.route('/')
-    def hello_world():
-        return 'Hello, World!'
+    import webApp
 
 from constants import electrodeNum, synergyNum
 
@@ -66,7 +61,13 @@ def run(q, deviceConnected=True): # main program logic
     calibrated = False
 
     if isPi:
-        app.run(host='0.0.0.0') # insecure, but it works for now
+        commandq = mp.Queue()
+        # app.run(host='0.0.0.0') # insecure, but it works for now
+        # webApp.start(commandq)
+        webApp.runApp()
+
+        # while True:
+            # op = commandq.get(block=True)
 
     elif notPi:   # interactive main loop
         plotter = emgPlot.plotManager()

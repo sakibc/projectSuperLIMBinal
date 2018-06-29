@@ -1,0 +1,21 @@
+body {
+    background-color: black;
+    display: flex;
+    flex-flow: column nowrap;
+    
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+p {
+    color: #ff7500;
+    font-family: "lores-15",sans-serif;
+    font-size: 4vw;
+    transform: scaleX(1.2);
+    line-height: 1.1;
+}
+
+p:last-of-type {
+    margin-bottom: 12vh;
+}
