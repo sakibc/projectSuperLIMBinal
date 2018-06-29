@@ -27,8 +27,7 @@ def monitor():
 def shutdown():
     if (platform.machine() == 'armv7l'):
         shutdownProcess = mp.Process(target=poweroffPi)
-        shutdownProcess.start()
-        shutdownProcess.join()
+        shutdownProcess.start() # not pretty but it works...
 
     return render_template('shutdown.html')
 
@@ -48,5 +47,5 @@ def poweroffPi():
     # run this in another process to shutdown the pi
     # after sending the user a shutdown message
 
-    time.sleep(5)
+    time.sleep(1)
     call("sudo poweroff", shell=True)
