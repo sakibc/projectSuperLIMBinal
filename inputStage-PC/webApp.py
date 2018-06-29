@@ -26,7 +26,7 @@ def monitor():
 def shutdown():
     if (platform.machine() == 'armv7l'):
         call("sleep 1s; sudo shutdown -h now", shell=True)
-        
+
     return render_template('shutdown.html')
 
 @app.errorhandler(404)
@@ -34,7 +34,7 @@ def page_not_found(error):
     return render_template('page_not_found.html')
 
 def runApp():
-    app.run()
+    app.run(host="0.0.0.0")
 
 # def start(q):
 #     appProcess = mp.Process(target=runApp, args=(q,))
