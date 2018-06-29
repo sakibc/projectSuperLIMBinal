@@ -48,5 +48,5 @@ def poweroffPi():
     # run this in another process to shutdown the pi
     # after sending the user a shutdown message
 
-    time.sleep(1)
+    time.sleep(5)
     call("sudo poweroff", shell=True)
