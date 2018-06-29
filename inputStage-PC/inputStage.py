@@ -29,8 +29,8 @@ import monitor
 
 import platform
 
-isPi = (platform.machine() == 'armv7l')
-# isPi = True # for dev purposes
+# isPi = (platform.machine() == 'armv7l')
+isPi = True # for dev purposes
 notPi = (isPi == False)
 
 if notPi:
@@ -63,11 +63,12 @@ def run(q, deviceConnected=True): # main program logic
     if isPi:
         commandq = mp.Queue()
         # app.run(host='0.0.0.0') # insecure, but it works for now
-        # webApp.start(commandq)
-        webApp.runApp()
+        webApp.start(commandq)
+        # webApp.runApp()
 
-        # while True:
-            # op = commandq.get(block=True)
+        while True:
+            op = commandq.get(block=True)
+            print(op)
 
     elif notPi:   # interactive main loop
         plotter = emgPlot.plotManager()

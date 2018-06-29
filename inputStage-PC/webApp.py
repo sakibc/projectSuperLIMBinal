@@ -1,7 +1,7 @@
 """ Copyright 2018 Sakib Chowdhury and Claudia Lutfallah
     
 """
-from flask import Flask, url_for
+from flask import Flask, url_for, jsonify
 from flask import render_template
 from subprocess import call
 
@@ -9,39 +9,41 @@ import multiprocessing as mp
 import platform
 import time
 
-app = Flask(__name__)
 
-@app.route('/')
-def main():
-    return render_template('index.html')
+def runApp(q):   # this is awful, I should at least make a class...
+    app = Flask(__name__,
+                static_folder = "./dist/static",
+                template_folder="./dist")
 
-@app.route('/calibrate')
-def calibrate():
-    return render_template('calibrate.html')
+    @app.route('/api/shutdown', methods=['POST'])
+    def shutdown():
+        q.put("shutting down...")
 
-@app.route('/monitor')
-def monitor():
-    return render_template('monitor.html')
+        # only if we're really sure this is a pi...
+        if (platform.machine() == 'armv7l'):
+            shutdownProcess = mp.Process(target=poweroffPi)
+            shutdownProcess.start()  # not pretty but it works...
 
-@app.route('/shutdown')
-def shutdown():
+        return '', 204
+
+    @app.route('/', defaults={'path': ''})
+    @app.route('/<path:path>')
+    def catch_all(path):
+        q.put('request received')
+        return render_template('index.html')
+
+    # @app.errorhandler(404)
+    # def page_not_found(error):
+    #     return render_template('page_not_found.html')
+
     if (platform.machine() == 'armv7l'):
-        shutdownProcess = mp.Process(target=poweroffPi)
-        shutdownProcess.start() # not pretty but it works...
+        app.run(host="0.0.0.0") # only run open to the network if on pi
+    else:
+        app.run()
 
-    return render_template('shutdown.html')
-
-@app.errorhandler(404)
-def page_not_found(error):
-    return render_template('page_not_found.html')
-
-def runApp():
-    app.run(host="0.0.0.0")
-
-# def start(q):
-#     appProcess = mp.Process(target=runApp, args=(q,))
-#     appProcess.start()
-#     appProcess.join()
+def start(q):
+    appProcess = mp.Process(target=runApp, args=(q,))
+    appProcess.start()
 
 def poweroffPi():
     # run this in another process to shutdown the pi
