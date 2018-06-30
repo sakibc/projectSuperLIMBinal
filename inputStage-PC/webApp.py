@@ -15,6 +15,18 @@ def runApp(q):   # this is awful, I should at least make a class...
                 static_folder = "./dist/static",
                 template_folder="./dist")
 
+    @app.route('/api/systemStatus')
+    def systemStatus():
+        q.put("getSystemStatus")
+        sensStatus, motStatus = q.get()
+        response = {
+            'sensorStatus': ("Connected" if sensStatus else "Disconnected"),
+            'motionStatus': "Under Construction"
+            # 'motionStatus': "Connected" if motStatus else "Disconnected"
+        }
+
+        return jsonify(response)
+
     @app.route('/api/shutdown', methods=['POST'])
     def shutdown():
         q.put("shutting down...")
@@ -29,7 +41,6 @@ def runApp(q):   # this is awful, I should at least make a class...
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>')
     def catch_all(path):
-        q.put('request received')
         return render_template('index.html')
 
     # @app.errorhandler(404)

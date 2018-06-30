@@ -11,12 +11,30 @@
 </template>
 
 <script>
+import axios from 'axios'
+
 export default {
   name: 'MainMenu',
   data () {
     return {
-      senStatus: 'Dunno',
-      motStatus: 'Disconnected'
+      senStatus: 'Unknown',
+      motStatus: 'Unknown'
+    }
+  },
+  created () {
+    this.getSystemStatus()
+  },
+  methods: {
+    getSystemStatus () {
+      const path = '/api/systemStatus'
+      axios.get(path)
+        .then(response => {
+          this.senStatus = response.data.sensorStatus
+          this.motStatus = response.data.motionStatus
+        })
+        .catch(error => {
+          console.log(error)
+        })
     }
   }
 }

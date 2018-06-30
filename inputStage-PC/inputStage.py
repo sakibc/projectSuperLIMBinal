@@ -61,14 +61,22 @@ def run(q, deviceConnected=True): # main program logic
     calibrated = False
 
     if isPi:
-        commandq = mp.Queue()
+        serverq = mp.Queue()
         # app.run(host='0.0.0.0') # insecure, but it works for now
-        webApp.start(commandq)
+        webApp.start(serverq)
         # webApp.runApp()
 
         while True:
-            op = commandq.get(block=True)
-            print(op)
+            op = serverq.get(block=True)
+            
+            if op == "getSystemStatus":
+                serverq.put((deviceConnected,False))
+            elif op == "startCalibration":
+                pass
+            elif op == "startMonitor":
+                pass
+            elif op == "stopMonitor":
+                pass
 
     elif notPi:   # interactive main loop
         plotter = emgPlot.plotManager()

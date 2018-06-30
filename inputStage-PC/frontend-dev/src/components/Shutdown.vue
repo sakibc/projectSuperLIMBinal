@@ -14,7 +14,7 @@ export default {
   },
   methods: {
     sendShutdown () {
-      const path = 'http://localhost:5000/api/shutdown'
+      const path = '/api/shutdown'
       axios.post(path).catch(error => {
         console.log(error)
       })
