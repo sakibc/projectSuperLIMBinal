@@ -9,19 +9,46 @@ import multiprocessing as mp
 import platform
 import time
 
+from helpers import clearQueue
 
-def runApp(q):   # this is awful, I should at least make a class...
+class webPlotDataManager:
+    def __init__(self, sampleq):
+        self.sampleq = sampleq
+
+    def startEmg(self):
+        pass    # dummy fn to work in place of other plotter
+    def stopEmg(self):
+        pass    # same
+    def sendEmg(self, dat):
+        self.sampleq.put(dat)
+
+def runApp(q, sampleq):   # this is awful, I should at least make a class...
     app = Flask(__name__,
                 static_folder = "./dist/static",
                 template_folder="./dist")
 
+    @app.route('/api/getSample')
+    def sendSample():
+        dat = sampleq.get()
+        print(dat)
+
+        return jsonify(dat.tolist())
+
+    @app.route('/api/startCalibration', methods=['POST'])
+    def startCalibration():
+        clearQueue(sampleq)
+        q.put("startCalibration")
+
+        return '', 204
+
     @app.route('/api/systemStatus')
     def systemStatus():
         q.put("getSystemStatus")
-        sensStatus, motStatus = q.get()
+        sensStatus, motStatus, calibStatus = q.get()
         response = {
             'sensorStatus': ("Connected" if sensStatus else "Disconnected"),
-            'motionStatus': "Under Construction"
+            'motionStatus': "Under Construction",
+            'calibStatus': ("Calibrated" if calibStatus else "Uncalibrated")
             # 'motionStatus': "Connected" if motStatus else "Disconnected"
         }
 
@@ -52,8 +79,8 @@ def runApp(q):   # this is awful, I should at least make a class...
     else:
         app.run()
 
-def start(q):
-    appProcess = mp.Process(target=runApp, args=(q,))
+def start(q, sampleq):
+    appProcess = mp.Process(target=runApp, args=(q,sampleq))
     appProcess.start()
 
 def poweroffPi():

@@ -31,7 +31,7 @@ def getCalibData(collectionTime, q, plotter):
 
     return dat
 
-def calibrate(q, plotter, testmode=False):
+def calibrate(q, plotter, testmode=False, isPi=False):
     W = np.ones((electrodeNum, synergyNum))
 
     if testmode:
@@ -39,15 +39,19 @@ def calibrate(q, plotter, testmode=False):
             "../inputStage-analysis/test-data/set3.mat")['elecData']
         print("\nTest data loaded. Generating calibration matrix...")
     else:
-        print("\nStarting calibration. Follow the instructions as they appear.")
-        time.sleep(1)  # give the user time to read...
-        promptp = mp.Process(target=userGuide.calibration)
+        if isPi == False:
+            print("\nStarting calibration. Follow the instructions as they appear.")
+            time.sleep(1)  # give the user time to read...
+            promptp = mp.Process(target=userGuide.calibration)
 
-        promptp.start()
+            promptp.start()
+
         caliData = getCalibData(45, q, plotter)   # capture 45 seconds of data
-        promptp.join()
+        
+        if isPi == False:
+            promptp.join()
 
-        print("Processing data...")
+            print("Processing data...")
 
     saveData(caliData)
 

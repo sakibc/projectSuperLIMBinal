@@ -62,17 +62,19 @@ def run(q, deviceConnected=True): # main program logic
 
     if isPi:
         serverq = mp.Queue()
+        sampleq = mp.Queue()
         # app.run(host='0.0.0.0') # insecure, but it works for now
-        webApp.start(serverq)
+        webApp.start(serverq, sampleq)
+        webPlotter = webApp.webPlotDataManager(sampleq)
         # webApp.runApp()
 
         while True:
             op = serverq.get(block=True)
             
             if op == "getSystemStatus":
-                serverq.put((deviceConnected,False))
+                serverq.put((deviceConnected,False,calibrated))
             elif op == "startCalibration":
-                pass
+                W, baselines, maxes = calibration.calibrate(q, webPlotter, isPi=True)
             elif op == "startMonitor":
                 pass
             elif op == "stopMonitor":
@@ -157,12 +159,12 @@ if __name__ == "__main__":
     p.start()
     message = q.get()
 
-    if message == "Connection established.\n":
+    if message == "Connection established.":
         print(message)
         run(q)
 
     else:
-        print("Connection failed!\n")
+        print("Connection failed!")
         run(q,False)
 
     p.terminate()
