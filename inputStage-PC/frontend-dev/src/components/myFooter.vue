@@ -13,14 +13,13 @@
     footer {
         background: #35566b;
         width: 100vw;
+        // height: 100px;
         padding: 20px 40px 20px 40px;
         display: flex;
         text-align: left;
         justify-content: center;
         color: #e6e6e6;
-
-        position: absolute;
-        bottom: 0;
+        box-shadow: inset 0px 10px 10px -10px hsla(0,0,0,0.2);
 
         p {
             padding-right: 20px;

@@ -4,6 +4,7 @@ import MainMenu from '@/components/MainMenu'
 import Calibrate from '@/components/Calibrate'
 import Monitor from '@/components/Monitor'
 import Shutdown from '@/components/Shutdown'
+import Restart from '@/components/Restart'
 
 Vue.use(Router)
 
@@ -12,6 +13,7 @@ export default new Router({
     { path: '/', component: MainMenu },
     { path: '/calibrate', component: Calibrate },
     { path: '/monitor', component: Monitor },
-    { path: '/shutdown', component: Shutdown }
+    { path: '/shutdown', component: Shutdown },
+    { path: '/restart', component: Restart }
   ]
 })

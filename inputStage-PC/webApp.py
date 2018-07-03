@@ -46,9 +46,9 @@ def runApp(q, sampleq):   # this is awful, I should at least make a class...
         q.put("getSystemStatus")
         sensStatus, motStatus, calibStatus = q.get()
         response = {
-            'sensorStatus': ("Connected" if sensStatus else "Disconnected"),
-            'motionStatus': "Under Construction",
-            'calibStatus': ("Calibrated" if calibStatus else "Uncalibrated")
+            'sensorStatus': sensStatus,
+            'motionStatus': motStatus,
+            'calibStatus': calibStatus
             # 'motionStatus': "Connected" if motStatus else "Disconnected"
         }
 
@@ -62,6 +62,17 @@ def runApp(q, sampleq):   # this is awful, I should at least make a class...
         if (platform.machine() == 'armv7l'):
             shutdownProcess = mp.Process(target=poweroffPi)
             shutdownProcess.start()  # not pretty but it works...
+
+        return '', 204
+
+    @app.route('/api/reboot', methods=['POST'])
+    def reboot():
+        q.put("rebooting...")
+
+        # only if we're really sure this is a pi...
+        if (platform.machine() == 'armv7l'):
+            rebootProcess = mp.Process(target=rebootPi)
+            rebootProcess.start()  # not pretty but it works...
 
         return '', 204
 
@@ -89,3 +100,10 @@ def poweroffPi():
 
     time.sleep(1)
     call("sudo poweroff", shell=True)
+
+def rebootPi():
+    # run this in another process to shutdown the pi
+    # after sending the user a shutdown message
+
+    time.sleep(1)
+    call("sudo reboot", shell=True)

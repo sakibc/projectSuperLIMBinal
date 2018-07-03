@@ -1,5 +1,5 @@
 <template>
-  <div class="calibration">
+  <div class="calibration page">
     <h2>Muscle Map Calibration</h2>
 
     <div class="chartRow">

@@ -1,17 +1,34 @@
 <template>
   <div id="app">
-    <router-view/>
+    <transition :name="transitionName">
+      <router-view/>
+    </transition>
   </div>
 </template>
 
 <script>
 export default {
-  name: 'App'
+  data () {
+    return {
+      transitionName: 'slide-in'
+    }
+  },
+  name: 'App',
+  watch: {
+    '$route' (to, from) {
+      if (to.path === '/') {
+        this.transitionName = 'slide-out'
+      } else {
+        this.transitionName = 'slide-in'
+      }
+    }
+  }
 }
 </script>
 
 <style lang="scss">
 @import 'styles/reset';
+@import 'styles/transitions';
 
 // body {
 //   height: 100vh;
@@ -27,4 +44,9 @@ export default {
   color: #2c3e50;
   background-color: #f5f5f5;
 }
+
+.page {
+  position: absolute;
+}
+
 </style>

@@ -1,5 +1,5 @@
 <template>
-    <div class="shutdown">
+    <div class="shutdown page">
         <p>It's now safe to turn off your</p>
         <p>Subliminal Sensor System.</p>
     </div>
@@ -32,6 +32,7 @@ export default {
   justify-content: center;
   align-items: center;
   height: 100vh;
+  width: 100vw;
 
   p {
     color: #ff7500;

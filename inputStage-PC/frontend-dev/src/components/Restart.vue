@@ -1,0 +1,78 @@
+<template>
+    <div class="restart page">
+      <div class="card">
+        <h3>Restarting...</h3>
+        <div class="progress-bg">
+          <div id="progress-bar"></div>
+        </div>
+      </div>
+    </div>
+</template>
+
+<script>
+import axios from 'axios'
+import anime from 'animejs'
+
+export default {
+  created () {
+    this.sendRestart()
+    this.goBack()
+  },
+  mounted () {
+    this.progressBarAni = anime({
+      targets: '#progress-bar',
+      width: '100%',
+      duration: 30000,
+      easing: 'linear'
+    })
+  },
+  methods: {
+    sendRestart () {
+      const path = '/api/restart'
+      axios.post(path).catch(error => {
+        console.log(error)
+      })
+    },
+    goBack () {
+      setTimeout(() => this.$router.push('/'), 30000)
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+@import "../styles/colors";
+@import "../styles/elements";
+
+  .restart {
+    width: 100vw;
+    height: 100vh;
+    background: $kinda-grey;
+    display: flex;
+    flex-flow: column nowrap;
+    justify-content: center;
+    align-items: center;
+
+    .card {
+      flex-flow: column nowrap;
+    }
+  }
+
+  #progress-bar {
+    width: 0%;
+    height: 30px;
+    background: $subliminal-pale;
+    border-radius: 4px;
+    box-shadow: 3px 5px 20px rgba(0, 0, 0, 0.1);
+  }
+
+  .progress-bg {
+    margin-top: 20px;
+    padding: 4px;
+    width: 70vw;
+    max-width: 630px;
+    background: $kinda-grey;
+    border-radius: 8px;
+    box-shadow: inset 3px 5px 20px rgba(0, 0, 0, 0.1);
+  }
+</style>
