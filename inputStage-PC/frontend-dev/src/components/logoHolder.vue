@@ -81,7 +81,10 @@ import anime from 'animejs'
 
 export default {
   mounted () {
-    var logoAni = anime.timeline();
+    var logoAni = anime.timeline({
+      // direction: 'alternate',
+      // loop: true
+    });
     logoAni
       .add({
         targets: '#logo-line path',
