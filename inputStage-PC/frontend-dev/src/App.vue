@@ -1,6 +1,6 @@
 <template>
-  <div id="app">
-    <transition :name="transitionName">
+  <div id='app'>
+    <transition :name='transitionName'>
       <router-view/>
     </transition>
   </div>
@@ -15,7 +15,7 @@ export default {
   },
   name: 'App',
   watch: {
-    '$route' (to, from) {
+    $route (to, from) {
       if (to.path === '/') {
         this.transitionName = 'slide-out'
       } else {
@@ -26,7 +26,7 @@ export default {
 }
 </script>
 
-<style lang="scss">
+<style lang='scss'>
 @import 'styles/reset';
 @import 'styles/transitions';
 
@@ -35,7 +35,7 @@ export default {
 // }
 
 #app {
-  font-family: "europa", Helvetica, Arial, sans-serif;
+  font-family: 'europa', Helvetica, Arial, sans-serif;
   font-style: normal;
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
@@ -47,6 +47,7 @@ export default {
 
 .page {
   position: absolute;
+  width: 100vw;
+  min-height: 100vh;
 }
-
 </style>

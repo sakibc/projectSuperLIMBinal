@@ -3,6 +3,7 @@
 """
 from flask import Flask, url_for, jsonify
 from flask import render_template
+from flask_socketio import SocketIO, send, emit
 from subprocess import call
 
 import multiprocessing as mp
@@ -27,21 +28,40 @@ def runApp(q, sampleq):   # this is awful, I should at least make a class...
                 static_folder = "./dist/static",
                 template_folder="./dist")
 
-    @app.route('/api/getSample')
+    socketio = SocketIO(app)
+
+    @socketio.on('getSample')
     def sendSample():
-        dat = sampleq.get()
-        print(dat)
+        i = 0
 
-        return jsonify(dat.tolist())
+        while sampleq.empty() == False:
+     
+            dat = sampleq.get()
+        
+            if i == 10:
+                emit('receiveSample', dat.tolist())
+                i = 0
+            else:
+                i += 1
 
-    @app.route('/api/startCalibration', methods=['POST'])
+    @socketio.on('loadMatrix')
+    def loadMatrix():
+        q.put("loadMatrix")
+        calibLoaded, calibLoadFailed = q.get()
+        response = {
+            'calibLoaded': calibLoaded,
+            'calibLoadFailed': calibLoadFailed
+        }
+
+        emit('loadMatrix', response)
+
+    @socketio.on('startCalibration')
     def startCalibration():
         clearQueue(sampleq)
         q.put("startCalibration")
 
-        return '', 204
-
-    @app.route('/api/systemStatus')
+    @socketio.on('systemStatus')
+    @socketio.on('connect')
     def systemStatus():
         q.put("getSystemStatus")
         sensStatus, motStatus, calibStatus = q.get()
@@ -49,12 +69,15 @@ def runApp(q, sampleq):   # this is awful, I should at least make a class...
             'sensorStatus': sensStatus,
             'motionStatus': motStatus,
             'calibStatus': calibStatus
-            # 'motionStatus': "Connected" if motStatus else "Disconnected"
         }
 
-        return jsonify(response)
+        emit('systemStatus', response)
 
-    @app.route('/api/shutdown', methods=['POST'])
+    @socketio.on('abortCalibration')
+    def abortCalibration():
+        q.put("abortCalibration")
+
+    @socketio.on('shutdown')
     def shutdown():
         q.put("shutting down...")
 
@@ -63,9 +86,7 @@ def runApp(q, sampleq):   # this is awful, I should at least make a class...
             shutdownProcess = mp.Process(target=poweroffPi)
             shutdownProcess.start()  # not pretty but it works...
 
-        return '', 204
-
-    @app.route('/api/reboot', methods=['POST'])
+    @socketio.on('restart')
     def reboot():
         q.put("rebooting...")
 
@@ -73,8 +94,6 @@ def runApp(q, sampleq):   # this is awful, I should at least make a class...
         if (platform.machine() == 'armv7l'):
             rebootProcess = mp.Process(target=rebootPi)
             rebootProcess.start()  # not pretty but it works...
-
-        return '', 204
 
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>')
@@ -86,9 +105,9 @@ def runApp(q, sampleq):   # this is awful, I should at least make a class...
     #     return render_template('page_not_found.html')
 
     if (platform.machine() == 'armv7l'):
-        app.run(host="0.0.0.0") # only run open to the network if on pi
+        socketio.run(app, host="0.0.0.0") # only run open to the network if on pi
     else:
-        app.run()
+        socketio.run(app)
 
 def start(q, sampleq):
     appProcess = mp.Process(target=runApp, args=(q,sampleq))

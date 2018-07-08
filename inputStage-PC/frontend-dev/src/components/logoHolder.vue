@@ -72,7 +72,6 @@
       <path fill="none" stroke="#8fd6ff" stroke-width="4" d="M3292.13 1183.46c8.72.21 16.98 6.99 17.94 16.04.83 7.87-3.61 16.15-10.89 19.31-11.32 4.93-27.38-4.43-25.4-18.68 1.21-8.73 8.85-16.37 17.71-16.66.21-.01.43-.01.64-.01z" transform="translate(-2515.5123409 -1057.0175)"/>
     </svg>
 
-
   </div>
 </template>
 
@@ -84,14 +83,14 @@ export default {
     var logoAni = anime.timeline({
       // direction: 'alternate',
       // loop: true
-    });
+    })
     logoAni
       .add({
         targets: '#logo-line path',
         strokeDashoffset: [anime.setDashoffset, 0],
         easing: 'easeInOutSine',
         duration: 1000,
-        delay: function(el, i) { return Math.log(i) * 250 }
+        delay: function (el, i) { return Math.log(i) * 250 }
       })
       .add({
         targets: '#logo-fill path',
@@ -99,7 +98,7 @@ export default {
         easing: 'easeInOutSine',
         duration: 1000,
         offset: 800,
-        delay: function(el, i) { return Math.log(i) * 250 }
+        delay: function (el, i) { return Math.log(i) * 250 }
       })
   }
 }

@@ -70,15 +70,40 @@ def run(q, deviceConnected=True): # main program logic
 
         while True:
             op = serverq.get(block=True)
-            
+            # print(op)
             if op == "getSystemStatus":
                 serverq.put((deviceConnected,False,calibrated))
             elif op == "startCalibration":
                 W, baselines, maxes = calibration.calibrate(q, webPlotter, isPi=True)
+
+                print("\nCalibration complete. Synergy matrix W:")
+                print(W)
+                print("\nBaselines:")
+                print(baselines)
+                print("\nMax values:")
+                print(maxes)
+
+                np.save("calibrationMatrix.npy",W)
+                np.save("baselines.npy", baselines)
+                np.save("maxes.npy",maxes)
+                print("Matrix saved.")
+
+            elif op == "loadMatrix":
+                try:
+                    W = np.load("calibrationMatrix.npy")
+                    baselines = np.load("baselines.npy")
+                    maxes = np.load("maxes.npy")
+                    calibrated = True
+                    serverq.put((True, False))
+                except:
+                    serverq.put((False, True))
+
             elif op == "startMonitor":
                 pass
             elif op == "stopMonitor":
                 pass
+            elif op == "rebooting...":
+                print("Reboot command received.")
 
     elif notPi:   # interactive main loop
         plotter = emgPlot.plotManager()

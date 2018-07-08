@@ -10,7 +10,6 @@
 </template>
 
 <script>
-import axios from 'axios'
 import anime from 'animejs'
 
 export default {
@@ -28,10 +27,7 @@ export default {
   },
   methods: {
     sendRestart () {
-      const path = '/api/restart'
-      axios.post(path).catch(error => {
-        console.log(error)
-      })
+      this.$socket.emit('restart')
     },
     goBack () {
       setTimeout(() => this.$router.push('/'), 30000)

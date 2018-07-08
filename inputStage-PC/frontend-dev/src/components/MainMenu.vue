@@ -29,7 +29,7 @@
         <div class="menu">
           <router-link to="/calibrate" v-if="!calibStatus && sensStatus">Calibrate muscle map</router-link>
           <router-link to="/calibrate" v-if="calibStatus && sensStatus">Recalibrate muscle map</router-link>
-          <router-link to="/load" v-if="!calibStatus && sensStatus">Load last calibration matrix</router-link>
+          <button v-on:click="loadMatrix()" v-if="!calibStatus && sensStatus">Load last calibration matrix</button>
           <router-link to="/monitor" v-if="calibStatus && sensStatus">Live synergy monitor</router-link>
         </div>
         <div class="menu">
@@ -44,7 +44,7 @@
 </template>
 
 <script>
-import axios from 'axios'
+// import axios from 'axios'
 import myFooter from './myFooter.vue'
 import logoHolder from './logoHolder.vue'
 
@@ -66,19 +66,39 @@ export default {
     myFooter,
     logoHolder
   },
+  sockets: {
+    systemStatus (data) {
+      this.sensStatus = data.sensorStatus
+      this.motStatus = data.motionStatus
+      this.calibStatus = data.calibStatus
+    },
+    loadMatrix (data) {
+      this.calibLoaded = data.calibLoaded
+      this.calibLoadFailed = data.calibLoadFailed
+
+      this.getSystemStatus()
+      setTimeout(this.dismissCalibLoadMessage, 3000)
+    }
+  },
   methods: {
     getSystemStatus () {
-      const path = '/api/systemStatus'
-      axios
-        .get(path)
-        .then(response => {
-          this.sensStatus = response.data.sensorStatus
-          this.motStatus = response.data.motionStatus
-          this.calibStatus = response.data.calibStatus
-        })
-        .catch(error => {
-          console.log(error)
-        })
+      // const path = '/api/systemStatus'
+      // axios
+      //   .get(path)
+      //   .then(response => {
+
+      //   })
+      //   .catch(error => {
+      //     console.log(error)
+      //   })
+      this.$socket.emit('systemStatus')
+    },
+    loadMatrix () {
+      this.$socket.emit('loadMatrix')
+    },
+    dismissCalibLoadMessage () {
+      this.calibLoaded = false
+      this.calibLoadFailed = false
     }
   }
 }
@@ -142,7 +162,7 @@ export default {
   border-radius: 8px;
   box-shadow: 3px 5px 20px rgba(0, 0, 0, 0.05);
   display: flex;
-  a {
+  a, button {
     padding: 10px;
     margin-bottom: 10px;
     box-shadow: 3px 5px 20px rgba(0, 0, 0, 0.1);
@@ -162,6 +182,13 @@ export default {
   }
   a:last-of-type {
     margin-bottom: 0px;
+  }
+  button {
+    font-family: 'europa', Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1;
+    margin-top: 10px;
+    border: None;
   }
   .status:last-of-type {
     margin-left: 20px;

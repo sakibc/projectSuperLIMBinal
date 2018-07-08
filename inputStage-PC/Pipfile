@@ -12,6 +12,8 @@ numpy = "*"
 scipy = "*"
 scikit-learn = "*"
 pyqtgraph = "*"
+flask-socketio = "*"
+eventlet = "*"
 
 [dev-packages]
 pylint = "*"

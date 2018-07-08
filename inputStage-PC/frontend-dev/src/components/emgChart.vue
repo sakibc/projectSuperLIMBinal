@@ -1,35 +1,49 @@
 <template>
-  <div class="chartHolder">
-    <canvas :id="id"></canvas>
+  <div>
+    <div class="myChart" :id="emgId"></div>
+    <p>{{ title }}</p>
   </div>
 </template>
 
 <script>
-import Chart from 'chart.js'
+import Rickshaw from 'rickshaw'
 
 export default {
-  data () {
-    return {
-      id: null
-    }
-  },
-  created () {
-    this.id = 'emg-chart-'.concat(this._uid)
+  props: {
+    emgSignal: Array,
+    emgId: String,
+    title: String
   },
   mounted () {
-    var ctx = document.getElementById(this.id).getContext('2d')
-
-    // eslint-disable-next-line
-    var myChart = new Chart(ctx, {
-      type: 'line'
+    this.graph = new Rickshaw.Graph({
+      element: document.getElementById(this.emgId),
+      renderer: 'line',
+      min: 0,
+      max: 1,
+      interpolation: 'linear',
+      series: [
+        {
+          color: 'steelblue',
+          data: this.emgSignal
+        }
+      ]
     })
+    this.graph.render()
+    window.requestAnimationFrame(this.updateChart)
+  },
+  methods: {
+    updateChart () {
+      this.graph.render()
+      window.requestAnimationFrame(this.updateChart)
+    }
   }
 }
 </script>
 
-<style lang="scss">
-  .chartHolder {
-    width: 25vw;
-    position: relative;
-  }
+<style lang='scss' scoped>
+.myChart {
+  position: relative;
+  width: calc((100vw - 100px) / 2);
+  height: 100px;
+}
 </style>

@@ -6,18 +6,13 @@
 </template>
 
 <script>
-import axios from 'axios'
-
 export default {
   created () {
     this.sendShutdown()
   },
   methods: {
     sendShutdown () {
-      const path = '/api/shutdown'
-      axios.post(path).catch(error => {
-        console.log(error)
-      })
+      this.$socket.emit('shutdown')
     }
   }
 }
