@@ -22,6 +22,12 @@ class webPlotDataManager:
         pass    # same
     def sendEmg(self, dat):
         self.sampleq.put(dat)
+    def startSyn(self):
+        pass    # dummy fn to work in place of other plotter
+    def stopSyn(self):
+        pass    # same
+    def sendSyn(self, dat):
+        self.sampleq.put(dat)
 
 def runApp(q, sampleq):   # this is awful, I should at least make a class...
     app = Flask(__name__,
@@ -60,11 +66,26 @@ def runApp(q, sampleq):   # this is awful, I should at least make a class...
         clearQueue(sampleq)
         q.put("startCalibration")
 
+    @socketio.on('startMonitor')
+    def startMonitor():
+        clearQueue(sampleq)
+        q.put("startMonitor")
+
+    @socketio.on('stopMonitor')
+    def stopMonitor():
+        q.put("abort")
+
+    @socketio.on('stopCalib')
+    def stopCalib():
+        q.put("abort")
+
     @socketio.on('systemStatus')
     @socketio.on('connect')
     def systemStatus():
         q.put("getSystemStatus")
-        sensStatus, motStatus, calibStatus = q.get()
+        dat = q.get()
+
+        sensStatus, motStatus, calibStatus = dat
         response = {
             'sensorStatus': sensStatus,
             'motionStatus': motStatus,

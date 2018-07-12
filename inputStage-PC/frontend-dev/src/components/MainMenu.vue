@@ -1,45 +1,57 @@
 <template>
   <div class="wrapper page">
     <div class="main-menu">
-      <logoHolder></logoHolder>
+      <logoHolder id="logoHolder"></logoHolder>
 
-      <div v-if="calibLoaded || calibLoadFailed" class="card">
-        <h3 v-if="calibLoaded" class="pos">Calibration matrix loaded.</h3>
-        <h3 v-else-if="calibLoadFailed" class="neg">Calibration matrix load failed!</h3>
-      </div>
+      <transition name="cardIn2"
+      v-on:before-enter="setupNewCardAni"
+      v-on:enter="animateNewCard"
+      v-on:leave="setupNewCardAni"
+      v-on:after-leave="animateNewCard">
+        <div v-if="calibLoaded || calibLoadFailed" class="card">
+          <h3 v-if="calibLoaded" class="pos">Calibration matrix loaded.</h3>
+          <h3 v-else-if="calibLoadFailed" class="neg">Calibration matrix load failed!</h3>
+        </div>
+      </transition>
+      
+      <transition name="cardIn" appear>
+        <div class="card status-card" id="status-card">
+          <div class="status">
+            <h3>Subliminal Sensor System:</h3>
+            <h3>Superliminal Limb System:</h3>
+            <h3>Calibration status:</h3>
+          </div>
+          <div class="status">
+            <h3 v-if="sensStatus" class="pos">Connected</h3>
+            <h3 v-else class="neg">Disconnected</h3>
+            <h3 v-if="motStatus" class="pos">Connected</h3>
+            <h3 v-else class="neg">Disconnected</h3>
+            <h3 v-if="calibStatus" class="pos">Calibrated</h3>
+            <h3 v-else class="neg">Not calibrated</h3>
+          </div>
+        </div>
+      </transition>
 
-      <div class="card status-card">
-        <div class="status">
-          <h3>Subliminal Sensor System:</h3>
-          <h3>Superliminal Limb System:</h3>
-          <h3>Calibration status:</h3>
+      <transition name="cardIn" appear>
+        <div class="card" id="menu-card">
+          <h3>Select an action</h3>
+          <div class="menu">
+            <router-link to="/calibrate" v-if="!calibStatus && sensStatus">Calibrate muscle map</router-link>
+            <router-link to="/calibrate" v-if="calibStatus && sensStatus">Recalibrate muscle map</router-link>
+            <button v-on:click="loadMatrix()" v-if="!calibStatus && sensStatus">Load last calibration matrix</button>
+            <router-link to="/monitor" v-if="calibStatus && sensStatus">Move Prosthetic Limb</router-link>
+          </div>
+          <div class="menu">
+            <router-link to="/shutdown">Turn off Sensor System</router-link>
+            <router-link to="/restart">Restart Sensor System</router-link>
+          </div>
         </div>
-        <div class="status">
-          <h3 v-if="sensStatus" class="pos">Connected</h3>
-          <h3 v-else class="neg">Disconnected</h3>
-          <h3 v-if="motStatus" class="pos">Connected</h3>
-          <h3 v-else class="neg">Disconnected</h3>
-          <h3 v-if="calibStatus" class="pos">Calibrated</h3>
-          <h3 v-else class="neg">Not calibrated</h3>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>Select an action</h3>
-        <div class="menu">
-          <router-link to="/calibrate" v-if="!calibStatus && sensStatus">Calibrate muscle map</router-link>
-          <router-link to="/calibrate" v-if="calibStatus && sensStatus">Recalibrate muscle map</router-link>
-          <button v-on:click="loadMatrix()" v-if="!calibStatus && sensStatus">Load last calibration matrix</button>
-          <router-link to="/monitor" v-if="calibStatus && sensStatus">Live synergy monitor</router-link>
-        </div>
-        <div class="menu">
-          <router-link to="/shutdown">Turn off Sensor System</router-link>
-          <router-link to="/restart">Restart Sensor System</router-link>
-        </div>
-      </div>
+      </transition>
     </div>
 
-    <myFooter></myFooter>
+    <transition name="footer" appear>
+      <myFooter id="myFooter"></myFooter>
+    </transition>
   </div>
 </template>
 
@@ -47,6 +59,7 @@
 // import axios from 'axios'
 import myFooter from './myFooter.vue'
 import logoHolder from './logoHolder.vue'
+import anime from 'animejs'
 
 export default {
   name: 'MainMenu',
@@ -60,7 +73,7 @@ export default {
     }
   },
   created () {
-    this.getSystemStatus()
+    setTimeout(this.getSystemStatus, 1000)
   },
   components: {
     myFooter,
@@ -82,15 +95,6 @@ export default {
   },
   methods: {
     getSystemStatus () {
-      // const path = '/api/systemStatus'
-      // axios
-      //   .get(path)
-      //   .then(response => {
-
-      //   })
-      //   .catch(error => {
-      //     console.log(error)
-      //   })
       this.$socket.emit('systemStatus')
     },
     loadMatrix () {
@@ -99,7 +103,64 @@ export default {
     dismissCalibLoadMessage () {
       this.calibLoaded = false
       this.calibLoadFailed = false
-    }
+    },
+    animateNewCard () {
+      let statusCardPos1 = this.statusCard.getBoundingClientRect()
+      let menuCardPos1 = this.menuCard.getBoundingClientRect()
+      let logoHolderPos1 = this.logoHolder.getBoundingClientRect()
+      let myFooterPos1 = this.myFooter.getBoundingClientRect()
+
+      let statusInvertedTop = this.statusCardPos0.top - statusCardPos1.top
+      this.statusCard.style.transformOrigin = 'top left'
+      
+      anime({
+        targets: '#status-card',
+        translateY: [statusInvertedTop, 0],
+        duration: 400,
+        easing: 'easeInOutQuad'
+      })
+
+      let menuInvertedTop = this.menuCardPos0.top - menuCardPos1.top
+      this.menuCard.style.transformOrigin = 'top left'
+      
+      anime({
+        targets: '#menu-card',
+        translateY: [menuInvertedTop, 0],
+        duration: 400,
+        easing: 'easeInOutQuad'
+      })
+
+      let logoHolderInvertedTop = this.logoHolderPos0.top - logoHolderPos1.top
+      this.logoHolder.style.transformOrigin = 'top left'
+      
+      anime({
+        targets: '#logoHolder',
+        translateY: [logoHolderInvertedTop, 0],
+        duration: 400,
+        easing: 'easeInOutQuad'
+      })
+
+      let myFooterInvertedTop = this.myFooterPos0.top - myFooterPos1.top
+      this.myFooter.style.transformOrigin = 'top left'
+      
+      anime({
+        targets: '#myFooter',
+        translateY: [myFooterInvertedTop, 0],
+        duration: 400,
+        easing: 'easeInOutQuad'
+      })
+    },
+    setupNewCardAni () {
+      this.statusCard = document.getElementById('status-card')
+      this.menuCard = document.getElementById('menu-card')
+      this.logoHolder = document.getElementById('logoHolder')
+      this.myFooter = document.getElementById('myFooter')
+
+      this.statusCardPos0 = this.statusCard.getBoundingClientRect()
+      this.menuCardPos0 = this.menuCard.getBoundingClientRect()
+      this.logoHolderPos0 = this.logoHolder.getBoundingClientRect()
+      this.myFooterPos0 = this.myFooter.getBoundingClientRect()
+}
   }
 }
 </script>
@@ -188,6 +249,7 @@ export default {
     font-size: 16px;
     line-height: 1;
     margin-top: 10px;
+    margin-bottom: 0px;
     border: None;
   }
   .status:last-of-type {
@@ -205,6 +267,38 @@ export default {
   justify-content: space-between;
   align-items: center;
   background: $kinda-grey;
+}
+
+.footer-enter-active, .footer-leave-active {
+  transition: transform 0.4s;
+  transition-delay: 0.4s;
+  transition-timing-function: ease-out;
+}
+
+.footer-enter, .footer-leave-to {
+  transform: translate3d(0,100%,0)
+}
+
+.cardIn-enter-active, .cardIn-leave-active {
+  transition: all 0.4s;
+  transition-delay: 0.4s;
+  transition-timing-function: ease-in-out;
+}
+
+.cardIn-enter, .cardIn-leave-to {
+  transform: translate3d(0, 10px, 0);
+  opacity: 0;
+}
+
+.cardIn2-enter-active, .cardIn2-leave-active {
+  // whatever...
+  transition: all 0.4s;
+  transition-timing-function: ease-in-out;
+}
+
+.cardIn2-enter, .cardIn2-leave-to {
+  transform: translate3d(0, 10px, 0);
+  opacity: 0;
 }
 
 </style>

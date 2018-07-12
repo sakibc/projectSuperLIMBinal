@@ -18,8 +18,13 @@ export default {
     $route (to, from) {
       if (to.path === '/') {
         this.transitionName = 'slide-out'
+        // document.body.style.backgroundColor = '#f5f5f5'
+      } else if (to.path === '/shutdown') {
+        this.transitionName = 'tv'
+        // document.body.style.backgroundColor = 'black'
       } else {
         this.transitionName = 'slide-in'
+        // document.body.style.backgroundColor = '#f5f5f5'
       }
     }
   }
@@ -30,9 +35,9 @@ export default {
 @import 'styles/reset';
 @import 'styles/transitions';
 
-// body {
-//   height: 100vh;
-// }
+body {
+  background-color: #f5f5f5;
+}
 
 #app {
   font-family: 'europa', Helvetica, Arial, sans-serif;

@@ -16,9 +16,9 @@ uint16_t readUnsignedInt() {
   return (dataBuffer[0] << 8) | dataBuffer[1];
 }
 
-int getPulseLength(deg) {
+int getPulseLength(int deg) {
   // Convert from degrees to pulse length in ticks
-  return map(deg, 0, 180, SERVOMIN, SERVOMAX)
+  return map(deg, 0, 180, SERVOMIN, SERVOMAX);
 }
 
 void setup() {
@@ -26,7 +26,7 @@ void setup() {
   Serial.println("Serial OK");
 
   servos.begin();
-  servos.setPWMFreq(60)
+  servos.setPWMFreq(60);
 
   delay(10);
 }
@@ -36,7 +36,7 @@ void loop() {
     synergies[i] = readUnsignedInt();
   }
   
-  servoPos = map(synergies[0],0,1000,0,180);
-  servos.setPWM(0,0,getPulseLength(servoPos))
+  int servoPos = map(synergies[0],0,1000,0,180);
+  servos.setPWM(0,0,getPulseLength(servoPos));
 }
 

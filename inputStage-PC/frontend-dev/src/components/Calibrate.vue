@@ -90,7 +90,7 @@ export default {
     },
     stopSampleRequest () {
       clearInterval(this.requestTimer)
-      this.$socket.emit('abortCalibration') // TODO: make this functional
+      this.$socket.emit('stopCalib') // TODO: make this functional
     }
   }
 }
@@ -98,6 +98,7 @@ export default {
 
 <style lang='scss'>
 @import '../styles/elements';
+@import "../styles/colors";
 
 .calibration {
   // height: 100vh;
@@ -112,6 +113,13 @@ export default {
 
   .card:first-of-type {
     margin-top: 0;
+  }
+
+  .card:last-of-type {
+    flex: 1 0 auto;
+    display: flex;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
   }
 }
 .charts {

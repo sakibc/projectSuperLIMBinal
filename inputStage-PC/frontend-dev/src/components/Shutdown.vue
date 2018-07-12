@@ -1,7 +1,11 @@
 <template>
     <div class="shutdown page">
-        <p>It's now safe to turn off your</p>
-        <p>Subliminal Sensor System.</p>
+      <transition name="crt-in" appear>
+        <div>
+          <p>It's now safe to turn off your</p>
+          <p>Subliminal Sensor System.</p>
+        </div>
+      </transition>
     </div>
 </template>
 
@@ -35,10 +39,23 @@ export default {
     font-size: 4vw;
     transform: scaleX(1.2);
     line-height: 1.1;
+
+    filter: blur(0.5px) drop-shadow(0 0 2px #ff7500);
+    // animation: 
   }
 
   p:last-of-type {
     margin-bottom: 12vh;
+  }
+
+  .crt-in-enter {
+    filter: blur(0) drop-shadow(0 0 0 #ff7500);
+    opacity: 0;
+  }
+  .crt-in-enter-active {
+    transition-property: filter, opacity;
+    transition-duration: 5s;
+    transition-timing-function: ease-in-out, ease-out;
   }
 }
 </style>

@@ -1,16 +1,20 @@
 <template>
-    <div class="restart page">
-      <div class="card">
-        <h3>Restarting...</h3>
-        <div class="progress-bg">
-          <div id="progress-bar"></div>
+    <div class="wrapper page">
+      <div class="restart">
+        <div class="card">
+          <h3>Restarting...</h3>
+          <div class="progress-bg">
+            <div id="progress-bar"></div>
+          </div>
         </div>
       </div>
+      <myFooter></myFooter>
     </div>
 </template>
 
 <script>
 import anime from 'animejs'
+import myFooter from './myFooter.vue'
 
 export default {
   created () {
@@ -24,6 +28,9 @@ export default {
       duration: 30000,
       easing: 'linear'
     })
+  },
+  components: {
+    myFooter
   },
   methods: {
     sendRestart () {
@@ -42,15 +49,21 @@ export default {
 
   .restart {
     width: 100vw;
-    height: 100vh;
     background: $kinda-grey;
     display: flex;
     flex-flow: column nowrap;
     justify-content: center;
     align-items: center;
+    flex-grow: 1;
 
     .card {
       flex-flow: column nowrap;
+    }
+
+    footer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
     }
   }
 

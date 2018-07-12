@@ -5,6 +5,7 @@ import time
 import numpy as np
 
 def packSynActivation(dat):  # pack data into uint16_t's to send
+    print(dat)
     return struct.pack('>'+'H'*len(dat),*dat)    # the arduino expects a number between 0 and 1000
 
 def move(q):

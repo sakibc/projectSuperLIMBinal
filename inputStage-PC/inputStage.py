@@ -73,20 +73,24 @@ def run(q, deviceConnected=True): # main program logic
             # print(op)
             if op == "getSystemStatus":
                 serverq.put((deviceConnected,False,calibrated))
+
             elif op == "startCalibration":
-                W, baselines, maxes = calibration.calibrate(q, webPlotter, isPi=True)
+                W, baselines, maxes = calibration.calibrate(q, webPlotter, isPi=True, server=serverq)
 
-                print("\nCalibration complete. Synergy matrix W:")
-                print(W)
-                print("\nBaselines:")
-                print(baselines)
-                print("\nMax values:")
-                print(maxes)
+                if W != "failed!":
+                    print("\nCalibration complete. Synergy matrix W:")
+                    print(W)
+                    print("\nBaselines:")
+                    print(baselines)
+                    print("\nMax values:")
+                    print(maxes)
 
-                np.save("calibrationMatrix.npy",W)
-                np.save("baselines.npy", baselines)
-                np.save("maxes.npy",maxes)
-                print("Matrix saved.")
+                    np.save("calibrationMatrix.npy",W)
+                    np.save("baselines.npy", baselines)
+                    np.save("maxes.npy",maxes)
+                    print("Matrix saved.")
+
+                    calibrated = True
 
             elif op == "loadMatrix":
                 try:
@@ -99,9 +103,7 @@ def run(q, deviceConnected=True): # main program logic
                     serverq.put((False, True))
 
             elif op == "startMonitor":
-                pass
-            elif op == "stopMonitor":
-                pass
+                monitor.monitor(q, W, baselines, maxes, webPlotter, server=serverq, isPi=True)
             elif op == "rebooting...":
                 print("Reboot command received.")
 
