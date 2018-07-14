@@ -101,9 +101,10 @@ def runApp(q, sampleq):   # this is awful, I should at least make a class...
     @socketio.on('shutdown')
     def shutdown():
         q.put("shutting down...")
-
+        
         # only if we're really sure this is a pi...
         if (platform.machine() == 'armv7l'):
+            print("shutting down...")
             shutdownProcess = mp.Process(target=poweroffPi)
             shutdownProcess.start()  # not pretty but it works...
 
