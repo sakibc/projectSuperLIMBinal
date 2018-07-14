@@ -105,8 +105,7 @@ def runApp(q, sampleq):   # this is awful, I should at least make a class...
         # only if we're really sure this is a pi...
         if (platform.machine() == 'armv7l'):
             print("shutting down...")
-            shutdownProcess = mp.Process(target=poweroffPi)
-            shutdownProcess.start()  # not pretty but it works...
+            poweroffPi()
 
     @socketio.on('restart')
     def reboot():
@@ -114,8 +113,7 @@ def runApp(q, sampleq):   # this is awful, I should at least make a class...
 
         # only if we're really sure this is a pi...
         if (platform.machine() == 'armv7l'):
-            rebootProcess = mp.Process(target=rebootPi)
-            rebootProcess.start()  # not pretty but it works...
+            rebootPi()
 
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>')
@@ -136,15 +134,9 @@ def start(q, sampleq):
     appProcess.start()
 
 def poweroffPi():
-    # run this in another process to shutdown the pi
-    # after sending the user a shutdown message
-
-    time.sleep(1)
+    # time.sleep(1)
     call("sudo poweroff", shell=True)
 
 def rebootPi():
-    # run this in another process to shutdown the pi
-    # after sending the user a shutdown message
-
-    time.sleep(1)
+    # time.sleep(1)
     call("sudo reboot", shell=True)
