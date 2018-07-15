@@ -35,9 +35,9 @@ const webpackConfig = merge(baseWebpackConfig, {
     new UglifyJsPlugin({
       uglifyOptions: {
         compress: {
+          keep_fnames: true,
           warnings: false
-        },
-        mangle: { reserved: ["$super"] }
+        }
       },
       sourceMap: config.build.productionSourceMap,
       parallel: true
