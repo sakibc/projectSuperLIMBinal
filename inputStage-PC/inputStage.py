@@ -16,7 +16,7 @@
 # Imports
 import time
 import sys
-sys.path.append('../')
+# sys.path.append('../')
 
 import multiprocessing as mp
 import numpy as np
@@ -29,8 +29,8 @@ import monitor
 
 import platform
 
-# isPi = (platform.machine() == 'armv7l')
-isPi = True # for dev purposes
+isPi = (platform.machine() == 'armv7l')
+# isPi = True # for dev purposes
 notPi = (isPi == False)
 
 if notPi:
