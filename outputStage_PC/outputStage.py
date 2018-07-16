@@ -5,11 +5,12 @@ import time
 import numpy as np
 
 def packSynActivation(dat):  # pack data into uint16_t's to send
-    print(dat)
+    dat = [int(i*1000) for i in dat]
+    # print(dat)
     return struct.pack('>'+'H'*len(dat),*dat)    # the arduino expects a number between 0 and 1000
 
 def move(q):
-    b = 0.4 # threshold of difference required in syn. activation and
+    b = 0.1 # threshold of difference required in syn. activation and
     last_c = [0,0,0,0]
     c = [0,0,0,0]
     delc = 0.05
@@ -46,6 +47,7 @@ def move(q):
                             c[i] = 0
                     else:
                         c[i] = last_c[i]
+                    # c[i] = sample[i]
 
                 for i in range(2):
                     if c[i*2] > th and c[i*2 + 1] > th:
@@ -57,8 +59,11 @@ def move(q):
                     else:
                         c[i*2] = 0
                     
+                # print(c)
                 dat = packSynActivation(c)
                 arduOut.write(dat)
+                # print(arduOut.readline().decode('utf-8'))
+                # print(arduOut.readline().decode('utf-8'))
                 
                 last_c = c[:]
 

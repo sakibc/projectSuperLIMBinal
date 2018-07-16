@@ -52,7 +52,7 @@ def calibrate(q, plotter, testmode=False, isPi=False, server=None):
 
             promptp.start()
 
-        time.sleep(6)  # give the user time to read...
+        time.sleep(1)  # give the user time to read...
         caliData = getCalibData(45, q, plotter, isPi, server=server)   # capture 45 seconds of data
         
         if isPi == False:
