@@ -3,23 +3,29 @@
 """
 import multiprocessing as mp
 import filterData
-from outputStage_PC import outputStage
+# from outputStage_PC import outputStage
 
 from helpers import *
 from constants import *
 
-def monitor(q, W, baselines, maxes, plotter):
-    print("Calculating inverse...")
+def monitor(q, W, baselines, maxes, plotter, server=None, isPi=False):
+    if isPi == False:
+        print("Calculating inverse...")
+
     Winv = np.linalg.pinv(W)
-    print("Inverse matrix calculated.")
 
-    print("Setting up arm...")
-    moveq = mp.Queue()
-    movep = mp.Process(target=outputStage.move,args=(moveq,))
-    movep.start()
+    if isPi == False:
+        print("Inverse matrix calculated.")
 
-    print("Starting graphs...")
-    plotter.startEmg()
+        print("Setting up arm...")
+    # moveq = mp.Queue()
+    # movep = mp.Process(target=outputStage.move,args=(moveq,))
+    # movep.start()
+
+    if isPi == False:
+        print("Starting graphs...")
+        plotter.startEmg()
+
     plotter.startSyn()
 
     filter = filterData.liveFilter()
@@ -38,9 +44,16 @@ def monitor(q, W, baselines, maxes, plotter):
         activation = np.matmul(Winv,sample)
         activation = activation.clip(0,1)
 
-        moveq.put(activation)
+        # moveq.put(activation)
 
-        plotter.sendEmg(sample)
+        if isPi == False:
+            plotter.sendEmg(sample)
+        else:
+            if server.empty() == False:
+                dat = server.get()
+                if dat == "abort":
+                    break
+
         plotter.sendSyn(activation)
 
     plotter.stopEmg()

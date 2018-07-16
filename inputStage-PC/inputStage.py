@@ -16,7 +16,7 @@
 # Imports
 import time
 import sys
-sys.path.append('../')
+# sys.path.append('../')
 
 import multiprocessing as mp
 import numpy as np
@@ -30,10 +30,13 @@ import monitor
 import platform
 
 isPi = (platform.machine() == 'armv7l')
+# isPi = True # for dev purposes
 notPi = (isPi == False)
 
 if notPi:
     import emgPlot
+else:
+    import webApp
 
 from constants import electrodeNum, synergyNum
 
@@ -45,79 +48,141 @@ def run(q, deviceConnected=True): # main program logic
     baselines = np.zeros(electrodeNum)
     maxes = np.full(electrodeNum,256*256)
 
-    if notPi:
-        plotter = emgPlot.plotManager()
+    # if is pi, start up webserver and treat it as the plotter, input, and output
+    # it's not worth the time to design it better to work nicely in both modes
+    # so I'll just rewrite a lot of the non-interactive mode here
+    # start a queue to get commands from the server
+    # every cycle, get a command from the queue
+    # if it's valid, enter a mode and tell the webserver that it's all good
+
+    # if not a pi, start up emgplot and treat it as the plotter
+    # get a command from the input queue
 
     calibrated = False
 
-    while True:
-        if op == 0:
-            userGuide.menuPrompt()
-            op = input("Option: ")
-            try:
-                tmp = int(op)
-                op = tmp
-            except:
-                pass
+    if isPi:
+        serverq = mp.Queue()
+        sampleq = mp.Queue()
+        # app.run(host='0.0.0.0') # insecure, but it works for now
+        webApp.start(serverq, sampleq)
+        webPlotter = webApp.webPlotDataManager(sampleq)
+        # webApp.runApp()
 
-        elif op == 1 and deviceConnected: # calibrate
-            W, baselines, maxes = calibration.calibrate(q, plotter)
-            calibrated = True
+        while True:
+            op = serverq.get(block=True)
+            # print(op)
+            if op == "getSystemStatus":
+                serverq.put((deviceConnected,False,calibrated))
 
-            print("\nCalibration complete. Synergy matrix W:")
-            print(W)
-            print("\nBaselines:")
-            print(baselines)
-            print("\nMax values:")
-            print(maxes)
+            elif op == "startCalibration":
+                W, baselines, maxes = calibration.calibrate(q, webPlotter, isPi=True, server=serverq)
 
-            toSave = input("\nWould you like to save this matrix? (y/n): ")
+                if W != "failed!":
+                    print("\nCalibration complete. Synergy matrix W:")
+                    print(W)
+                    print("\nBaselines:")
+                    print(baselines)
+                    print("\nMax values:")
+                    print(maxes)
 
-            if toSave == "y":
-                np.save("calibrationMatrix.npy",W)
-                np.save("baselines.npy", baselines)
-                np.save("maxes.npy",maxes)
-                print("Matrix saved.")
-            else:
-                print("Matrix not saved.")
+                    np.save("calibrationMatrix.npy",W)
+                    np.save("baselines.npy", baselines)
+                    np.save("maxes.npy",maxes)
+                    print("Matrix saved.")
 
-            op = 0
-        elif op == 2: # load
-            try:
-                W = np.load("calibrationMatrix.npy")
-                baselines = np.load("baselines.npy")
-                maxes = np.load("maxes.npy")
+                    calibrated = True
+
+            elif op == "loadMatrix":
+                try:
+                    W = np.load("calibrationMatrix.npy")
+                    baselines = np.load("baselines.npy")
+                    maxes = np.load("maxes.npy")
+                    calibrated = True
+                    serverq.put((True, False))
+                except:
+                    serverq.put((False, True))
+
+            elif op == "startMonitor":
+                monitor.monitor(q, W, baselines, maxes, webPlotter, server=serverq, isPi=True)
+            elif op == "rebooting...":
+                print("Reboot command received.")
+
+    elif notPi:   # interactive main loop
+        plotter = emgPlot.plotManager()
+    
+        while True:
+            if op == 0:
+                userGuide.menuPrompt()
+                op = input("Option: ")
+                try:
+                    tmp = int(op)
+                    op = tmp
+                except:
+                    pass
+
+            elif op == 1 and deviceConnected: # calibrate
+                W, baselines, maxes = calibration.calibrate(q, plotter)
                 calibrated = True
-                print("Calibration matrix loaded.")
-            except:
-                print("Error: Calibration matrix not found!")
 
-            op = 0
-        elif op == 3 and deviceConnected:
-            if calibrated:
-                monitor.monitor(q, W, baselines, maxes, plotter)
+                print("\nCalibration complete. Synergy matrix W:")
+                print(W)
+                print("\nBaselines:")
+                print(baselines)
+                print("\nMax values:")
+                print(maxes)
+
+                toSave = input("\nWould you like to save this matrix? (y/n): ")
+
+                if toSave == "y":
+                    np.save("calibrationMatrix.npy",W)
+                    np.save("baselines.npy", baselines)
+                    np.save("maxes.npy",maxes)
+                    print("Matrix saved.")
+                else:
+                    print("Matrix not saved.")
+
+                op = 0
+            elif op == 2: # load
+                try:
+                    W = np.load("calibrationMatrix.npy")
+                    baselines = np.load("baselines.npy")
+                    maxes = np.load("maxes.npy")
+                    calibrated = True
+                    print("Calibration matrix loaded.")
+                except:
+                    print("Error: Calibration matrix not found!")
+
+                op = 0
+            elif op == 3 and deviceConnected:
+                if calibrated:
+                    monitor.monitor(q, W, baselines, maxes, plotter)
+                else:
+                    print("Error: Calibrate or load a calibration matrix first.")
+
+                op = 0
+            elif op == 4: # run test
+                W = calibration.calibrate(q, plotter, testmode=True)
+                print(W)
+                op = 0
+            elif op == 5: # quit
+                break
             else:
-                print("Error: Calibrate or load a calibration matrix first.")
+                print("Invalid command.\n")
+                op = 0
 
-            op = 0
-        elif op == 4: # run test
-            W = calibration.calibrate(q, plotter, testmode=True)
-            print(W)
-            op = 0
-        elif op == 5: # quit
-            userGuide.endMessage()
-            break
-        else:
-            print("Invalid command.\n")
-            op = 0
-
+    userGuide.endMessage()
 
 if __name__ == "__main__":
     q = mp.Queue(60)   # let a maximum of ~100ms of data pile up in the queue
     p = mp.Process(target=emgCapture.capture, args=(q,))
     #data capture process so that it's not blocked by program logic.
 
-    print("Connecting to device...")        
+    if isPi:
+        print("Starting Project SuperLIMBinal in headless mode...")
+    else:
+        print("Starting Project SuperLIMBinal in interactive mode...")
+
+    print("\nConnecting to device...")        
     p.start()
     message = q.get()
 
@@ -128,7 +193,6 @@ if __name__ == "__main__":
     else:
         print("Connection failed!")
         run(q,False)
-        sys.exit()
 
     p.terminate()
     p.join()
