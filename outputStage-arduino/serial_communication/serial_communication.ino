@@ -35,8 +35,11 @@ void loop() {
   for (uint8_t i = 0; i < SYNNUM; i++) {
     synergies[i] = readUnsignedInt();
   }
+  // Serial.println(synergies[0]);
   
   int servoPos = map(synergies[0],0,1000,0,180);
-  servos.setPWM(0,0,getPulseLength(servoPos));
+  // Serial.println(servoPos);
+  for (int i = 0; i < 5; i++)
+  servos.setPWM(i,0,getPulseLength(servoPos));
 }
 
