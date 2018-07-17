@@ -66,6 +66,7 @@ export default {
         this.emgSignals[i].shift()
       }
       this.t += 1
+      this.samplesReceived += 1
     }
   },
   created () {
@@ -73,6 +74,7 @@ export default {
   },
   mounted () {
     this.startSampleRequest()
+    this.samplesReceived = 0
   },
   beforeDestroy () {
     this.stopSampleRequest()
@@ -84,12 +86,18 @@ export default {
     requestSample () {
       this.$socket.emit('getSample')
     },
+    calculateFreq () {
+      console.log("Broadcast rate: "+(this.samplesReceived)+" samples per second.")
+      this.samplesReceived = 0
+    },
     startSampleRequest () {
       this.requestTimer = setInterval(this.requestSample, 16)
+      this.statsTimer = setInterval(this.calculateFreq, 1000)
       this.t = 0
     },
     stopSampleRequest () {
       clearInterval(this.requestTimer)
+      clearInterval(this.statsTimer)
       this.$socket.emit('stopCalib') // TODO: make this functional
     }
   }
