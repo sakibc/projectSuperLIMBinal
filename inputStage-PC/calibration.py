@@ -29,7 +29,7 @@ def getCalibData(collectionTime, q, plotter, isPi, server=None):
         if isPi:
             piCounter += 1
             
-            if piCounter == 10:
+            if piCounter == 20:
                 plotter.sendEmg(sample/256)
                 piCounter = 0
 

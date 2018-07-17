@@ -26,7 +26,7 @@ import myFooter from './myFooter.vue'
 import emgChart from './emgChart.vue'
 import calibrator from './calibrator.vue'
 
-const Fs = 601 // the amount of samples in ten seconds (streamed slow enough so the graph can draw it)
+const Fs = 300 // the amount of samples in ten seconds (streamed slow enough so the graph can draw it)
 
 export default {
   data () {
@@ -91,7 +91,7 @@ export default {
       this.samplesReceived = 0
     },
     startSampleRequest () {
-      this.requestTimer = setInterval(this.requestSample, 16)
+      this.requestTimer = setInterval(this.requestSample, 32)
       this.statsTimer = setInterval(this.calculateFreq, 1000)
       this.t = 0
     },
