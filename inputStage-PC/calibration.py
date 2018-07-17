@@ -14,7 +14,7 @@ from helpers import clearQueue, reorder, saveData
 from constants import *
 
 def getCalibData(collectionTime, q, plotter, isPi, server=None):
-    dat = np.zeros((electrodeNum,collectionTime*Fs))
+    dat = np.zeros((electrodeNum,collectionTime*Fs), dtype=np.int8)
 
     plotter.startEmg()
 
@@ -30,7 +30,7 @@ def getCalibData(collectionTime, q, plotter, isPi, server=None):
             piCounter += 1
             
             if piCounter == 20:
-                plotter.sendEmg(sample/256)
+                plotter.sendEmg(sample)
                 piCounter = 0
 
             if server.empty() == False:
