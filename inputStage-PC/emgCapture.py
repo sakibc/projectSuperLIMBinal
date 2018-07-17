@@ -32,7 +32,6 @@ def capture(q):
 
     baudRate = 500000  # any slower and the Arduino can't send the data fast enough
 
-    port = getPort()
     # sampling rate overall is 16MHz/(32prescale*13cycles) ~= 38462
     # for each channel, at 8 channels is ~4808 Hz
     # we sample chunks 601 times per second
@@ -42,6 +41,7 @@ def capture(q):
 
     while attemptConnect:
         attemptConnect = False
+        port = getPort()
         try:
             with serial.Serial(port, baudRate, timeout=1, dsrdtr=True) as arduIn:
 
@@ -77,8 +77,10 @@ def capture(q):
                             pass    # if the queue's full, don't force it...
 
         except serial.SerialException:
-            print("Error: Device not found.")
+            print("Error: Device not found. Trying again in 10 seconds...")
             q.put("error")  # so the main program knows not to continue
+            time.sleep(10)
+            attemptConnect = True
         except KeyboardInterrupt:
             print("\nProgram execution interrupted.")
         except UnicodeDecodeError:  # this happens sometimes...

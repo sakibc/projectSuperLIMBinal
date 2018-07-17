@@ -20,18 +20,28 @@ def getCalibData(collectionTime, q, plotter, isPi, server=None):
 
     clearQueue(q)  # let's empty the queue first so we can grab some fresh data
 
+    piCounter = 0
+
     for i in range(int(collectionTime*Fs/blockSamples)):
         sample = q.get(block=True, timeout=0.1)
         sample = reorder(sample)
-        plotter.sendEmg(sample/256)
-        index = i*blockSamples
-        dat[:,(index):(index+blockSamples)] = sample
-
+        
         if isPi:
+            piCounter += 1
+            
+            if piCounter == 10:
+                plotter.sendEmg(sample/256)
+                piCounter = 0
+
             if server.empty() == False:
                 msg = server.get()
                 if msg == "abort":
                     return("failed!")
+        else:
+            plotter.sendEmg(sample/256)
+
+        index = i*blockSamples
+        dat[:, (index):(index+blockSamples)] = sample
 
     plotter.stopEmg()
 
@@ -52,7 +62,7 @@ def calibrate(q, plotter, testmode=False, isPi=False, server=None):
 
             promptp.start()
 
-        time.sleep(1)  # give the user time to read...
+        time.sleep(5)  # give the user time to read...
         caliData = getCalibData(45, q, plotter, isPi, server=server)   # capture 45 seconds of data
         
         if isPi == False:

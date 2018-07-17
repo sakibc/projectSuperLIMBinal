@@ -85,7 +85,7 @@ export default {
       this.$socket.emit('getSample')
     },
     startSampleRequest () {
-      this.requestTimer = setInterval(this.requestSample, 10)
+      this.requestTimer = setInterval(this.requestSample, 16)
       this.t = 0
     },
     stopSampleRequest () {

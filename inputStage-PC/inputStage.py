@@ -30,7 +30,7 @@ import monitor
 import platform
 
 isPi = (platform.machine() == 'armv7l')
-# isPi = True # for dev purposes
+isPi = True # for dev purposes
 notPi = (isPi == False)
 
 if notPi:
@@ -41,7 +41,23 @@ else:
 from constants import electrodeNum, synergyNum
 
 
-def run(q, deviceConnected=True): # main program logic
+def run(): # main program logic
+    # let a maximum of ~100ms of data pile up in the queue
+    q = mp.Queue(60)
+    p = mp.Process(target=emgCapture.capture, args=(q,))
+    #data capture process so that it's not blocked by program logic.
+
+    deviceConnected = False
+    print("\nConnecting to device...")        
+    p.start()
+    message = q.get()
+
+    if message == "Connection established.":
+        print(message)
+        deviceConnected = True
+    else:
+        print("Connection failed!")
+
     op = 0
 
     W = np.zeros((electrodeNum,synergyNum))
@@ -107,6 +123,17 @@ def run(q, deviceConnected=True): # main program logic
             elif op == "rebooting...":
                 print("Reboot command received.")
 
+            if deviceConnected == False:
+                while q.empty() == False:
+                    message = q.get()
+                    if message == "Connection established.":
+                        print(message)
+                        deviceConnected = True
+                        break
+                    else:
+                        print("Connection failed!")
+
+
     elif notPi:   # interactive main loop
         plotter = emgPlot.plotManager()
     
@@ -171,29 +198,14 @@ def run(q, deviceConnected=True): # main program logic
                 op = 0
 
     userGuide.endMessage()
+    p.terminate()
+    p.join()
 
 if __name__ == "__main__":
-    q = mp.Queue(60)   # let a maximum of ~100ms of data pile up in the queue
-    p = mp.Process(target=emgCapture.capture, args=(q,))
-    #data capture process so that it's not blocked by program logic.
-
     if isPi:
         print("Starting Project SuperLIMBinal in headless mode...")
     else:
         print("Starting Project SuperLIMBinal in interactive mode...")
 
-    print("\nConnecting to device...")        
-    p.start()
-    message = q.get()
-
-    if message == "Connection established.":
-        print(message)
-        run(q)
-
-    else:
-        print("Connection failed!")
-        run(q,False)
-
-    p.terminate()
-    p.join()
+    run()
     sys.exit()

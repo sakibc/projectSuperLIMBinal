@@ -3,7 +3,7 @@
 """
 import multiprocessing as mp
 import filterData
-from outputStage_PC import outputStage
+# from outputStage_PC import outputStage
 
 from helpers import *
 from constants import *
@@ -19,8 +19,8 @@ def monitor(q, W, baselines, maxes, plotter, server=None, isPi=False):
 
         print("Setting up arm...")
     moveq = mp.Queue()
-    movep = mp.Process(target=outputStage.move,args=(moveq,))
-    movep.start()
+    # movep = mp.Process(target=outputStage.move,args=(moveq,))
+    # movep.start()
 
     if isPi == False:
         print("Starting graphs...")
@@ -44,7 +44,7 @@ def monitor(q, W, baselines, maxes, plotter, server=None, isPi=False):
         activation = np.matmul(Winv,sample)
         activation = activation.clip(0,1)
 
-        moveq.put(activation)
+        # moveq.put(activation)
 
         if isPi == False:
             plotter.sendEmg(sample)

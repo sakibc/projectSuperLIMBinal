@@ -6,6 +6,8 @@ import time
 def calibration():
     movements = ["Rest position","Open Hand","Close Hand","Pronate","Supinate"]
 
+    time.sleep(5)
+
     for movement in movements:
         print("\nReady? Next movement:",movement)
         time.sleep(2)

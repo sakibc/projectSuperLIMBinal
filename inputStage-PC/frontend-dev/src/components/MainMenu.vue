@@ -73,7 +73,10 @@ export default {
     }
   },
   created () {
-    setTimeout(this.getSystemStatus, 1000)
+    this.checkStatus = setInterval(this.getSystemStatus, 1000)
+  },
+  beforeDestroy () {
+    clearInterval(this.checkStatus)
   },
   components: {
     myFooter,

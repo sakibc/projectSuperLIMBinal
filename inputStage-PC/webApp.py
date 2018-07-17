@@ -43,12 +43,7 @@ def runApp(q, sampleq):   # this is awful, I should at least make a class...
         while sampleq.empty() == False:
      
             dat = sampleq.get()
-        
-            if i == 10:
-                emit('receiveSample', dat.tolist())
-                i = 0
-            else:
-                i += 1
+            emit('receiveSample', dat.tolist())
 
     @socketio.on('loadMatrix')
     def loadMatrix():
