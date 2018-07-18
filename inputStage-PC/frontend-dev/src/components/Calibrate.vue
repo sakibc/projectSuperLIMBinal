@@ -67,6 +67,9 @@ export default {
       }
       this.t += 1
       this.samplesReceived += 1
+    },
+    endCalibration (data) {
+      this.$router.push('/')
     }
   },
   created () {

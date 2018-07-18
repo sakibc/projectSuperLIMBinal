@@ -68,12 +68,15 @@ def calibrate(q, plotter, testmode=False, isPi=False, server=None):
         if isPi == False:
             promptp.join()
 
-            print("Processing data...")
+    print("Data capture finished.")
 
-    if caliData != "failed!":
+    if type(caliData) is np.ndarray:
+        print("Data processing started.")
         saveData(caliData)
+        print("Data successfully saved.")
 
         caliData = filterData.longPrep(caliData)
+        print("Mains hum removed.")
 
         if testmode:
             timeStart = [(t+8)*Fs for t in range(0, 45, 9)]

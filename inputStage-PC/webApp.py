@@ -74,6 +74,11 @@ def runApp(q, sampleq):   # this is awful, I should at least make a class...
     def stopCalib():
         q.put("abort")
 
+    @socketio.on('processingStatus')
+    def checkProcessingStatus():
+        if q.empty() == False:
+            emit('endCalibration')
+
     @socketio.on('systemStatus')
     @socketio.on('connect')
     def systemStatus():

@@ -163,9 +163,9 @@ export default {
       else {
         this.msg = 'Calibration complete'
         this.timerBar.style.backgroundColor = 'limeGreen'
-        setTimeout(()=>{
-          this.$router.push('/')
-        }, 3000)
+        // setTimeout(()=>{
+        //   this.$router.push('/')
+        // }, 3000)
       }
     }
   }

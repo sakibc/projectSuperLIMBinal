@@ -108,6 +108,8 @@ def run(): # main program logic
 
                     calibrated = True
 
+                    serverq.put("done")
+
             elif op == "loadMatrix":
                 try:
                     W = np.load("calibrationMatrix.npy")

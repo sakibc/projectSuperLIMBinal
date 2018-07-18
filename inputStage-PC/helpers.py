@@ -18,6 +18,7 @@ def saveData(dat):
         time.time()).strftime("%Y%m%d-%H%M%S") + ".mat"
     filename = "../inputStage-analysis/capturedData/" + filename
 
+    print("Saving data...")
     scipy.io.savemat(filename, {'capturedData': dat})
 
     print("Data saved to", filename)
