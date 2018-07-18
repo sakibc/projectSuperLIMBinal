@@ -3,12 +3,12 @@
 
 Adafruit_PWMServoDriver servos = Adafruit_PWMServoDriver();
 
-#define SERVOMIN 150
-#define SERVOMAX 600
+#define SERVOMIN 120
+#define SERVOMAX 550
 
 #define SYNNUM 8  // number of synergies
 
-uint16_t synergies[SYNNUM];
+// uint16_t synergies[SYNNUM];
 
 uint16_t readUnsignedInt() {
   uint8_t dataBuffer[2];
@@ -32,14 +32,26 @@ void setup() {
 }
 
 void loop() {
-  for (uint8_t i = 0; i < SYNNUM; i++) {
-    synergies[i] = readUnsignedInt();
-  }
+  // for (uint8_t i = 0; i < SYNNUM; i++) {
+  //   synergies[i] = readUnsignedInt();
+  // }
   // Serial.println(synergies[0]);
   
-  int servoPos = map(synergies[0],0,1000,0,180);
+  // int servoPos = map(synergies[0],0,1000,0,180);
   // Serial.println(servoPos);
-  for (int i = 0; i < 5; i++)
-  servos.setPWM(i,0,getPulseLength(servoPos));
+  for (uint16_t pulselen = SERVOMIN; pulselen <= SERVOMAX; pulselen++) {
+    for (int i = 0; i < 5; i++) {
+      servos.setPWM(i, 0, pulselen);
+    }
+  }
+
+  delay(500);
+
+  for (uint16_t pulselen = SERVOMAX; pulselen >= SERVOMIN; pulselen--)
+    {
+      for (int i = 0; i < 5; i++) {
+        servos.setPWM(i, 0, pulselen);
+    }
+  }
 }
 
