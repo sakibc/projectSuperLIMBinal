@@ -42,14 +42,14 @@ export default {
         Array.from(new Array(Fs), (val, i) => { return {x: -Fs + i, y: null} })],
 
       titles: [
-        'Flexor carpi ulnaris',
-        'Flexor carpi radialis',
-        'Extensor carpi ulnaris',
-        'Extensor carpi radialis',
-        'Flexor digitorum superficialis 1',
-        'Flexor digitorum superficialis 2',
-        'Flexor digitorum superficialis 3',
-        'Flexor digitorum superficialis 4',
+        'Electrode 1',
+        'Electrode 2',
+        'Electrode 3',
+        'Electrode 4',
+        'Electrode 5',
+        'Electrode 6',
+        'Electrode 7',
+        'Electrode 8',
       ]
     }
   },
@@ -77,10 +77,12 @@ export default {
   },
   mounted () {
     this.startSampleRequest()
+    this.startCheckStatus()
     this.samplesReceived = 0
   },
   beforeDestroy () {
     this.stopSampleRequest()
+    this.stopCheckStatus()
   },
   methods: {
     startCalibration () {
@@ -90,7 +92,7 @@ export default {
       this.$socket.emit('getSample')
     },
     calculateFreq () {
-      console.log("Broadcast rate: "+(this.samplesReceived)+" samples per second.")
+      console.log('Broadcast rate: '+(this.samplesReceived)+' samples per second.')
       this.samplesReceived = 0
     },
     startSampleRequest () {
@@ -98,9 +100,17 @@ export default {
       this.statsTimer = setInterval(this.calculateFreq, 1000)
       this.t = 0
     },
+    startCheckStatus () {
+      this.checkStatus = setInterval(() => {
+        this.$socket.emit('processingStatus')
+      }, 32)
+    },
+    stopCheckStatus () {
+      clearInterval(this.checkStatus)
+    },
     stopSampleRequest () {
       clearInterval(this.requestTimer)
-      clearInterval(this.statsTimer)
+      // clearInterval(this.statsTimer)
       this.$socket.emit('stopCalib') // TODO: make this functional
     }
   }

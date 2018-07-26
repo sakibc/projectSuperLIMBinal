@@ -22,7 +22,7 @@
 import myFooter from './myFooter.vue'
 import emgChart from './emgChart.vue'
 
-const Fs = 601 // the amount of samples in ten seconds (streamed slow enough so the graph can draw it)
+const Fs = 300 // the amount of samples in ten seconds (streamed slow enough so the graph can draw it)
 
 export default {
   data () {
@@ -53,6 +53,7 @@ export default {
         this.synSignals[i].shift()
       }
       this.t += 1
+      this.samplesReceived += 1
     }
   },
   created () {
@@ -60,6 +61,7 @@ export default {
   },
   mounted () {
     this.startSampleRequest()
+    this.samplesReceived = 0
   },
   beforeDestroy () {
     this.stopSampleRequest()
@@ -72,11 +74,17 @@ export default {
       this.$socket.emit('getSample')
     },
     startSampleRequest () {
-      this.requestTimer = setInterval(this.requestSample, 10)
+      this.requestTimer = setInterval(this.requestSample, 32)
       this.t = 0
+            this.statsTimer = setInterval(this.calculateFreq, 1000)
+    },
+    calculateFreq () {
+      console.log('Broadcast rate: ' + (this.samplesReceived) + ' samples per second.')
+      this.samplesReceived = 0
     },
     stopSampleRequest () {
       clearInterval(this.requestTimer)
+      clearInterval(this.statsTimer)
       this.$socket.emit('stopMonitor') // TODO: make this functional
       console.log('stopping...')
     }

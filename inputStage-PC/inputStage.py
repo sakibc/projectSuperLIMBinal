@@ -28,8 +28,9 @@ import calibration
 import monitor
 
 import platform
+import serial.tools.list_ports
 
-isPi = (platform.machine() == 'armv7l')
+# isPi = (platform.machine() == 'armv7l')
 isPi = True # for dev purposes
 notPi = (isPi == False)
 
@@ -44,11 +45,11 @@ from constants import electrodeNum, synergyNum
 def run(): # main program logic
     # let a maximum of ~100ms of data pile up in the queue
     q = mp.Queue(60)
-    p = mp.Process(target=emgCapture.capture, args=(q,))
+    p = mp.Process(target=emgCapture.capture, args=(q, '/dev/ttyUSB0'))
     #data capture process so that it's not blocked by program logic.
 
     deviceConnected = False
-    print("\nConnecting to device...")        
+    print("\nConnecting to device...")
     p.start()
     message = q.get()
 
@@ -79,8 +80,10 @@ def run(): # main program logic
     if isPi:
         serverq = mp.Queue()
         sampleq = mp.Queue()
+        motionq = mp.Queue()
         # app.run(host='0.0.0.0') # insecure, but it works for now
         webApp.start(serverq, sampleq)
+        webApp.startOutput(motionq)
         webPlotter = webApp.webPlotDataManager(sampleq)
         # webApp.runApp()
 
@@ -109,8 +112,10 @@ def run(): # main program logic
                     calibrated = True
 
                     serverq.put("done")
+                    time.sleep(1)
 
             elif op == "loadMatrix":
+                # print("loading matrix...")
                 try:
                     W = np.load("calibrationMatrix.npy")
                     baselines = np.load("baselines.npy")

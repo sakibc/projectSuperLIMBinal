@@ -5,29 +5,68 @@ from flask import Flask, url_for, jsonify
 from flask import render_template
 from flask_socketio import SocketIO, send, emit
 from subprocess import call
+import socket
 
 import multiprocessing as mp
 import platform
 import time
+import pickle
 
 from helpers import clearQueue
 
 class webPlotDataManager:
     def __init__(self, sampleq):
         self.sampleq = sampleq
+        self.sampleTimer = 0
+
+        self.samplesSent = 0
 
     def startEmg(self):
         pass    # dummy fn to work in place of other plotter
     def stopEmg(self):
         pass    # same
     def sendEmg(self, dat):
-        self.sampleq.put(dat)
+        self.sampleTimer += 1
+        if self.sampleTimer == 20:
+            self.sampleq.put(dat)
+            self.sampleTimer = 0
     def startSyn(self):
-        pass    # dummy fn to work in place of other plotter
+        self.startTime = time.time()
     def stopSyn(self):
         pass    # same
     def sendSyn(self, dat):
-        self.sampleq.put(dat)
+        self.sampleTimer += 1
+        if self.sampleTimer == 20:
+            # print(dat)
+            self.sampleq.put(dat)
+            self.samplesSent += 1
+            self.sampleTimer = 0
+            if self.samplesSent == 1000:
+                currentTime = time.time()
+                timePassed = currentTime - self.startTime
+                print("Broadcast frequency:", 1000/timePassed, "Hz")
+                self.startTime = currentTime
+                self.samplesSent = 0
+
+def outputServer(motionq):
+    host = ''
+    port = 5002
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind((host, port))
+    s.listen(1)
+    conn, addr = s.accept()
+    print("Connected to", addr)
+    while True:
+        # data = motionq.get()
+        data = "ayyyyy"
+        conn.sendall(pickle.dumps(data))
+        time.sleep(1)
+
+    conn.close()
+
+def startOutput(motionq):
+    outAppProcess = mp.Process(target=outputServer, args=(motionq,))
+    outAppProcess.start()
 
 def runApp(q, sampleq):   # this is awful, I should at least make a class...
     app = Flask(__name__,
@@ -38,16 +77,17 @@ def runApp(q, sampleq):   # this is awful, I should at least make a class...
 
     @socketio.on('getSample')
     def sendSample():
-        i = 0
 
         while sampleq.empty() == False:
      
             dat = sampleq.get()
+            # print(dat.tolist())
             emit('receiveSample', dat.tolist())
 
     @socketio.on('loadMatrix')
     def loadMatrix():
         q.put("loadMatrix")
+        print("loading matrix...")
         calibLoaded, calibLoadFailed = q.get()
         response = {
             'calibLoaded': calibLoaded,

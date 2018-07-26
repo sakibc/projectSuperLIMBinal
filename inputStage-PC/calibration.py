@@ -1,5 +1,5 @@
 """ Copyright 2018 Sakib Chowdhury and Claudia Lutfallah
-    
+
 """
 import numpy as np
 import multiprocessing as mp
@@ -22,26 +22,29 @@ def getCalibData(collectionTime, q, plotter, isPi, server=None):
 
     piCounter = 0
 
+    print("Starting data collection...")
+
     for i in range(int(collectionTime*Fs/blockSamples)):
         sample = q.get(block=True, timeout=0.1)
         sample = reorder(sample)
-        
-        if isPi:
-            piCounter += 1
-            
-            if piCounter == 20:
-                plotter.sendEmg(sample)
-                piCounter = 0
 
-            if server.empty() == False:
-                msg = server.get()
-                if msg == "abort":
-                    return("failed!")
-        else:
-            plotter.sendEmg(sample/256)
+        # if isPi:
+        #     piCounter += 1
+
+        #     if piCounter == 20:
+        #         plotter.sendEmg(sample0)
+        #         piCounter = 0
+
+        #     if server.empty() == False:
+        #         msg = server.get()
+        #         if msg == "abort":
+        #             return("failed!")
+        # else:
+        #     plotter.sendEmg(sample0/256)
 
         index = i*blockSamples
         dat[:, (index):(index+blockSamples)] = sample
+        plotter.sendEmg(sample)
 
     plotter.stopEmg()
 
@@ -49,6 +52,7 @@ def getCalibData(collectionTime, q, plotter, isPi, server=None):
 
 def calibrate(q, plotter, testmode=False, isPi=False, server=None):
     W = np.ones((electrodeNum, synergyNum))
+    print("Calibrating...")
 
     if testmode:
         caliData = scipy.io.loadmat(
@@ -75,8 +79,9 @@ def calibrate(q, plotter, testmode=False, isPi=False, server=None):
         saveData(caliData)
         print("Data successfully saved.")
 
+        print("Prepping data...")
         caliData = filterData.longPrep(caliData)
-        print("Mains hum removed.")
+        print("Data prepped for analysis.")
 
         if testmode:
             timeStart = [(t+8)*Fs for t in range(0, 45, 9)]

@@ -1,5 +1,5 @@
 """ Copyright 2018 Sakib Chowdhury and Claudia Lutfallah
-    
+
 """
 import multiprocessing as mp
 import filterData
@@ -8,7 +8,7 @@ import filterData
 from helpers import *
 from constants import *
 
-def monitor(q, W, baselines, maxes, plotter, server=None, isPi=False):
+def monitor(q, motionq, W, baselines, maxes, plotter, server=None, isPi=False):
     if isPi == False:
         print("Calculating inverse...")
 
@@ -18,7 +18,7 @@ def monitor(q, W, baselines, maxes, plotter, server=None, isPi=False):
         print("Inverse matrix calculated.")
 
         print("Setting up arm...")
-    moveq = mp.Queue()
+
     # movep = mp.Process(target=outputStage.move,args=(moveq,))
     # movep.start()
 
@@ -29,8 +29,9 @@ def monitor(q, W, baselines, maxes, plotter, server=None, isPi=False):
     plotter.startSyn()
 
     filter = filterData.liveFilter()
-    
+
     clearQueue(q)
+    clearQueue(motionq)
 
     while True:
         sample = q.get(block=True, timeout=0.1)
@@ -44,7 +45,7 @@ def monitor(q, W, baselines, maxes, plotter, server=None, isPi=False):
         activation = np.matmul(Winv,sample)
         activation = activation.clip(0,1)
 
-        # moveq.put(activation)
+        motionq.put(activation)
 
         if isPi == False:
             plotter.sendEmg(sample)
