@@ -126,7 +126,7 @@ def run(): # main program logic
                     serverq.put((False, True))
 
             elif op == "startMonitor":
-                monitor.monitor(q, W, baselines, maxes, webPlotter, server=serverq, isPi=True)
+                monitor.monitor(q, motionq, W, baselines, maxes, webPlotter, server=serverq, isPi=True)
             elif op == "rebooting...":
                 print("Reboot command received.")
 
