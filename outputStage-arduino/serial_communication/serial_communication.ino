@@ -3,7 +3,7 @@
 
 Adafruit_PWMServoDriver servos = Adafruit_PWMServoDriver();
 
-#define SERVOMIN 120
+#define SERVOMIN 130
 #define SERVOMAX 550
 
 #define SYNNUM 8  // number of synergies
