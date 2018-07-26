@@ -35,13 +35,14 @@ class webPlotDataManager:
     def stopSyn(self):
         pass    # same
     def sendSyn(self, dat):
+        # print(dat)
         self.sampleTimer += 1
         if self.sampleTimer == 20:
             # print(dat)
             self.sampleq.put(dat)
             self.samplesSent += 1
             self.sampleTimer = 0
-            if self.samplesSent == 1000:
+            if self.samplesSent == 100:
                 currentTime = time.time()
                 timePassed = currentTime - self.startTime
                 print("Broadcast frequency:", 1000/timePassed, "Hz")
