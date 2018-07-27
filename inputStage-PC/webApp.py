@@ -123,7 +123,7 @@ def runApp(q, sampleq):   # this is awful, I should at least make a class...
     @socketio.on('systemStatus')
     @socketio.on('connect')
     def systemStatus():
-        print("status requested.")
+        # print("status requested.")
         q.put("getSystemStatus")
         dat = q.get()
 

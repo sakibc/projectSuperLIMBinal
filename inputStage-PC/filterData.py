@@ -12,10 +12,16 @@ Q = 35
 
 bComb, aComb = sig.iirnotch(w0, Q)
 
+wh = 20/(Fs/2)  # high-pass filter
+bHigh, aHigh = sig.butter(3, wh, btype='highpass')
+
 # smoothing filter coefficients, from MATLAB
 # it's just a 2nd order butterworth lowpass with f_c = 4
 sos = [[1, 2, 1, 1, -1.99260754938975, 0.992634773113031]]
 g = 6.8059308200936e-06
+
+# wl = 4/(Fs/2)
+# bLow, aLow = sig.butter(2, wl)
 
 
 for i in range(2,7): # remove 5 more harmonics for good measure...
@@ -23,6 +29,10 @@ for i in range(2,7): # remove 5 more harmonics for good measure...
     b, a = sig.iirnotch(w0i, Q)
     bComb = sig.convolve(bComb, b)
     aComb = sig.convolve(aComb, a)
+
+bComb = sig.convolve(bComb, bHigh)
+aComb = sig.convolve(aComb, aHigh)
+
 
 def mainsComb(signal):
     """Remove 60Hz mains noise from prerecorded signal."""
@@ -39,6 +49,7 @@ def longPrep(signal):
     windowLen = round(0.5*Fs)
     window = np.ones(windowLen)/windowLen
     return sig.lfilter(window,1,signal)
+    # return g*sig.sosfilt(sos, signal)
     
 class liveFilter():
     """A filter that keeps track of previous states for realtime filtering."""
