@@ -22,7 +22,7 @@ def getPort():
 
     return port
 
-def capture(q, port):
+def capture(q, port=None):
     """Capture data from Arduino in a separate process and push it to the queue.
 
     Keyword arguments:
@@ -41,7 +41,7 @@ def capture(q, port):
 
     while attemptConnect:
         attemptConnect = False
-        # port = getPort()
+        port = getPort()
         try:
             with serial.Serial(port, baudRate, timeout=1, dsrdtr=True) as arduIn:
 

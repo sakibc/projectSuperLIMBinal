@@ -58,8 +58,8 @@ class liveFilter():
         # let's see if this works, okay?
 
     def prep(self, signal):
-        # signal = self.comb(center(signal))
-        signal = np.square(center(signal))
+        signal = self.comb(center(signal))
+        signal = np.square(signal)
         return self.smooth(signal)
 
 

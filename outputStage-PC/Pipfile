@@ -8,6 +8,7 @@ serial = "*"
 numpy = "*"
 python-socketio-client = "*"
 gevent = "*"
+pyserial = "*"
 
 [dev-packages]
 

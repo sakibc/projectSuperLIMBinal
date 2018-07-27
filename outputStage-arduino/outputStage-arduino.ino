@@ -74,7 +74,7 @@ void setup()
   servos.setPWM(PINKIE, 0, PINKIEMIN);
   servos.setPWM(WRIST, 0, WRISTMIN);
 
-  servos.setPWM(ELBOW, 0, 335); // the elbow's not strong enough but this is
+  servos.setPWM(ELBOW, 0, 110); // the elbow's not strong enough but this is
   // enough to prop the arm up a bit
 
   synergies[0] = 500;

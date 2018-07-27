@@ -2,7 +2,7 @@
 
 #include <Arduino.h>
 
-#define BAUDRATE 115200
+#define BAUDRATE 9600
 
 #define THUMB   0
 #define INDEX   1

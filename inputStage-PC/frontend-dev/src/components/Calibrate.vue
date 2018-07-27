@@ -61,7 +61,7 @@ export default {
   sockets: {
     receiveSample (data) {
       for (var i = 0; i < 8; i++) {
-        let newData = {x: this.t, y: data[i][0]/256}
+        let newData = {x: this.t, y: data[i][0]}
         this.emgSignals[i].push(newData)
         this.emgSignals[i].shift()
       }

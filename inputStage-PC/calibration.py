@@ -14,37 +14,20 @@ from helpers import clearQueue, reorder, saveData
 from constants import *
 
 def getCalibData(collectionTime, q, plotter, isPi, server=None):
-    dat = np.zeros((electrodeNum,collectionTime*Fs), dtype=np.int8)
+    dat = np.zeros((electrodeNum,collectionTime*Fs))
 
     plotter.startEmg()
 
     clearQueue(q)  # let's empty the queue first so we can grab some fresh data
 
-    piCounter = 0
-
     print("Starting data collection...")
 
     for i in range(int(collectionTime*Fs/blockSamples)):
-        sample = q.get(block=True, timeout=0.1)
+        sample = q.get(block=True)
         sample = reorder(sample)
-
-        # if isPi:
-        #     piCounter += 1
-
-        #     if piCounter == 20:
-        #         plotter.sendEmg(sample0)
-        #         piCounter = 0
-
-        #     if server.empty() == False:
-        #         msg = server.get()
-        #         if msg == "abort":
-        #             return("failed!")
-        # else:
-        #     plotter.sendEmg(sample0/256)
-
+        plotter.sendEmg(sample/256)
         index = i*blockSamples
         dat[:, (index):(index+blockSamples)] = sample
-        plotter.sendEmg(sample)
 
     plotter.stopEmg()
 

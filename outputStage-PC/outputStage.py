@@ -7,20 +7,20 @@ import socket
 import pickle
 
 def packSynActivation(dat):  # pack data into uint16_t's to send
-    dat = [int(i*1000) for i in dat]
+    dat = [int(i*500) for i in dat]
     # print(dat)
-    return struct.pack('>'+'H'*len(dat),*dat)    # the arduino expects a number between 0 and 1000
+    out = [0, 0]
 
-def move(s):
-    # b = 0.1 # threshold of difference required in syn. activation and
-    # last_c = [0,0,0,0]
-    # c = [0,0,0,0]
-    c = [0.5, 0]
-    mult = 0.001
-    # delc = 0.05
-    # th = 0.7
+    if dat[0] >= dat[1]:
+        out[0] = 500 - dat[0]
+    else:
+        out[0] = 500 + dat[1]
 
-    with serial.Serial("/dev/ttyACM0",115200,timeout=1,write_timeout=1) as arduOut:
+    out[1] = 500
+    return struct.pack('>'+'H'*len(out),*out)    # the arduino expects a number between 0 and 1000
+
+def move(q):
+    with serial.Serial("/dev/cu.usbmodem1421", 9600, timeout=1, write_timeout=1) as arduOut:
         print("Connecting to arm...")
 
         startMessage = arduOut.readline().decode('utf-8')
@@ -37,61 +37,85 @@ def move(s):
         else:
             moving = False
 
+        counter = 0
+
         while moving:
-            data = s.recv(1024)
-            print(pickle.loads(data))
-            # c[0] += mult
-            # if c[0] >= 1 or c[0] <= 0:
-            #     mult *= -1
+            c = q.get()
+            counter += 1
+            if counter == 2404:
+                dat = packSynActivation(c)
+                arduOut.write(dat)
+                counter = 0
+            
 
-            # dat = packSynActivation(c)
-            # arduOut.write(dat)
+def run(s):
+    b = 0.5 # threshold of difference required in syn. activation and
+    last_c = [0,0,0,0]
+    c = [0, 0, 0, 0]
+    delc = 0.05
+    th = 0.7
+    print("connection established.")
 
-            # time.sleep(0.01)
+    processing = True
 
-            # movements = np.swapaxes(q.get(),0,1) # transpose so we can iterate over the samples
-            # for sample in movements:   # only for one synergy for now
-            #     for i in range(4):
-            #         if sample[i] >= last_c[i] + b:
-            #             c[i] = last_c[i] + delc
-            #             if c[i] > 1:
-            #                 c[i] = 1
-            #         elif sample[i] <= last_c[i] + b:
-            #             c[i] = last_c[i] - delc
-            #             if c[i] < 0:
-            #                 c[i] = 0
-            #         else:
-            #             c[i] = last_c[i]
-            #         # c[i] = sample[i]
+    cq = mp.Queue()
 
-            #     for i in range(2):
-            #         if c[i*2] > th and c[i*2 + 1] > th:
-            #             c[i*2] = last_c[i*2]
-            #             c[i*2 + 1] = last_c[i*2 + 1]
+    arduprocess = mp.Process(target=move, args=(cq,))
 
-            #         if c[i*2] > c[i*2 + 1]:
-            #             c[i*2 + 1] = 0
-            #         else:
-            #             c[i*2] = 0
-                    
-            #     # print(c)
-            #     dat = packSynActivation(c)
-            #     arduOut.write(dat)
-            #     # print(arduOut.readline().decode('utf-8'))
-            #     # print(arduOut.readline().decode('utf-8'))
-                
-            #     last_c = c[:]
+    arduprocess.start()
+
+    while processing:
+        data = s.recv(1024)
+        data = np.frombuffer(data, count=32)
+        data = np.reshape(data, (4, 8))
+
+        # transpose so we can iterate over the samples
+        movements = np.swapaxes(data, 0, 1)
+        for sample in movements:   # only for one synergy for now
+            if sample[0] > 0.7 and sample[1] < 0.2:
+                c[0] = 1
+                c[1] = 0
+            elif sample[1] > 0.7 and sample[0] < 0.2:
+                c[1] = 1
+                c[0] = 0
+            else:
+                c[0] = last_c[0]
+                c[1] = last_c[1]
+            # for i in range(4):
+            #     if sample[i] >= last_c[i] + b:
+            #         c[i] = last_c[i] + delc
+            #         if c[i] > 1:
+            #             c[i] = 1
+            #     elif sample[i] <= last_c[i] + b:
+            #         c[i] = last_c[i] - delc
+            #         if c[i] < 0:
+            #             c[i] = 0
+            #     else:
+            #         c[i] = last_c[i]
+
+            # for i in range(2):
+            #     if c[i*2] > th and c[i*2 + 1] > th:
+            #         c[i*2] = last_c[i*2]
+            #         c[i*2 + 1] = last_c[i*2 + 1]
+
+            #     if c[i*2] > c[i*2 + 1]:
+            #         c[i*2 + 1] = 0
+            #     else:
+            #         c[i*2] = 0
+
+            # print(c)
+            cq.put(c)
+
+            last_c = c[:]
+
+    
 
 if __name__ == "__main__":  # this is extremely insecure
-    host = '192.168.4.1'
+    host = 'localhost'
     port = 5002
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    while True:
-        try:
-            s.connect((host, port))
-            move(s)
-        except:
-            pass
+    s.connect((host, port))
+    run(s)
             
     s.close

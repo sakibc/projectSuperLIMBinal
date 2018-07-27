@@ -45,7 +45,7 @@ class webPlotDataManager:
             if self.samplesSent == 100:
                 currentTime = time.time()
                 timePassed = currentTime - self.startTime
-                print("Broadcast frequency:", 1000/timePassed, "Hz")
+                print("Broadcast frequency:", 100/timePassed, "Hz")
                 self.startTime = currentTime
                 self.samplesSent = 0
 
@@ -58,10 +58,10 @@ def outputServer(motionq):
     conn, addr = s.accept()
     print("Connected to", addr)
     while True:
-        # data = motionq.get()
-        data = "ayyyyy"
-        conn.sendall(pickle.dumps(data))
-        time.sleep(1)
+        data = motionq.get(block=True)
+        # print(data)
+        data = data.tobytes('C')
+        conn.sendall(data)
 
     conn.close()
 
@@ -123,17 +123,21 @@ def runApp(q, sampleq):   # this is awful, I should at least make a class...
     @socketio.on('systemStatus')
     @socketio.on('connect')
     def systemStatus():
+        print("status requested.")
         q.put("getSystemStatus")
         dat = q.get()
 
-        sensStatus, motStatus, calibStatus = dat
-        response = {
-            'sensorStatus': sensStatus,
-            'motionStatus': motStatus,
-            'calibStatus': calibStatus
-        }
+        try:
+            sensStatus, motStatus, calibStatus = dat
+            response = {
+                'sensorStatus': sensStatus,
+                'motionStatus': motStatus,
+                'calibStatus': calibStatus
+            }
 
-        emit('systemStatus', response)
+            emit('systemStatus', response)
+        except:
+            print("something bad happened...")
 
     @socketio.on('abortCalibration')
     def abortCalibration():

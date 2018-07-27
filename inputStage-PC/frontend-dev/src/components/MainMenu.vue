@@ -98,6 +98,7 @@ export default {
   },
   methods: {
     getSystemStatus () {
+      console.log("Getting status...")
       this.$socket.emit('systemStatus')
     },
     loadMatrix () {
