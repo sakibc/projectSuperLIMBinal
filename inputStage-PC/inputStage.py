@@ -18,7 +18,6 @@ import numpy as np
 
 import calibration
 import emgCapture
-import emgPlot
 import monitor
 import userGuide
 import webApp
@@ -42,6 +41,7 @@ args = parser.parse_args()
 
 if args.interactive and notPi:
     headless = False
+    import emgPlot
 else:
     headless = True
 
