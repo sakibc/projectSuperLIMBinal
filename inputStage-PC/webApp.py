@@ -49,24 +49,47 @@ class webPlotDataManager:
                 self.startTime = currentTime
                 self.samplesSent = 0
 
-def outputServer(motionq):
+def outputServer(motionq, armStatusq):
+    print("Opening socket to robotic arm...")
     host = ''
     port = 5002
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind((host, port))
-    s.listen(1)
-    conn, addr = s.accept()
-    print("Connected to", addr)
+    connected = False
+
     while True:
-        data = motionq.get(block=True)
-        # print(data)
-        data = data.tobytes('C')
-        conn.sendall(data)
+        try:
+            s.bind((host, port))
+            print("Arm socket opened.")
+            s.listen(1)
+            conn, addr = s.accept()
+            print("Connected to", addr)
+            armStatusq.put(True)
+            counter = 0
+            connected = True
 
-    conn.close()
+            while True:
+                data = motionq.get(block=True)
+                # print(data)
+                counter += 1
+                if counter == 160:
+                    data = data.tobytes('C')
+                    conn.sendall(data)
+                    counter = 0
+        except KeyboardInterrupt:
+            print("\nShutting down arm socket...")
+            # the socket needs to be closed properly or else it can't be reused
+            # next time the program runs
+            if connected:
+                s.shutdown(socket.SHUT_RDWR)
 
-def startOutput(motionq):
-    outAppProcess = mp.Process(target=outputServer, args=(motionq,))
+            s.close()
+
+            armStatusq.put(False)
+            break
+
+def startOutput(motionq, armStatusq):
+    print("Starting webserver...")
+    outAppProcess = mp.Process(target=outputServer, args=(motionq, armStatusq))
     outAppProcess.start()
 
 def runApp(q, sampleq):   # this is awful, I should at least make a class...
@@ -124,6 +147,7 @@ def runApp(q, sampleq):   # this is awful, I should at least make a class...
     @socketio.on('connect')
     def systemStatus():
         # print("status requested.")
+        clearQueue(q)
         q.put("getSystemStatus")
         dat = q.get()
 
@@ -137,7 +161,13 @@ def runApp(q, sampleq):   # this is awful, I should at least make a class...
 
             emit('systemStatus', response)
         except:
-            print("something bad happened...")
+            # the main process must be down, we got invalid data
+            response = {
+                'sensorStatus': False,
+                'motionStatus': False,
+                'calibStatus': False
+            }
+            emit('systemStatus', response)
 
     @socketio.on('abortCalibration')
     def abortCalibration():
@@ -174,6 +204,8 @@ def runApp(q, sampleq):   # this is awful, I should at least make a class...
         socketio.run(app, host="0.0.0.0") # only run open to the network if on pi
     else:
         socketio.run(app)
+
+    print("\nShutting down webserver...")
 
 def start(q, sampleq):
     appProcess = mp.Process(target=runApp, args=(q,sampleq))

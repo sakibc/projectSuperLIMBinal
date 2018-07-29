@@ -14,6 +14,8 @@ scikit-learn = "*"
 pyqtgraph = "*"
 flask-socketio = "*"
 eventlet = "*"
+nimfa = "*"
+matplotlib = "*"
 
 [dev-packages]
 pylint = "*"

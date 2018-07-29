@@ -54,6 +54,10 @@ export default {
       'Open Hand',
       'Close Hand',
       'Pronate',
+      'Supinate',
+      'Open Hand',
+      'Close Hand',
+      'Pronate',
       'Supinate'
     ]
     this.delays = [2, 2, 3, 2]
@@ -71,7 +75,7 @@ export default {
     this.timerBarAni = anime({
       targets: '#calibTimerBar',
       scaleX: [0, 1],
-      duration: 50000,
+      duration: 86000,
       easing: 'linear',
     })
 
@@ -103,7 +107,7 @@ export default {
     guide () {
       let that = this
 
-      if (this.currentMovement < 5) {
+      if (this.currentMovement < 9) {
         let nextMessage = null
         switch (this.currentDelay) {
           case 0:

@@ -1,11 +1,4 @@
 """ Copyright 2018 Sakib Chowdhury and Claudia Lutfallah
-    This script monitors the serial port and captures the data in chunks of 64
-    bytes as the Arduino sends it at its maximum transfer rate. It separates the
-    data out of the chunk into arrays for each electrode and plots it live on
-    the screen.
-
-    This script currently only saves data once a desired amount of seconds has
-    passed, so it cannot be run indefinitely without running out of memory.
 """
 
 #TODO:
@@ -14,39 +7,86 @@
 #       cause right now erroring is really the only way it exits...
 
 # Imports
-import time
+import argparse
+import platform
+import serial.tools.list_ports
 import sys
-sys.path.append('../')
+import time
 
 import multiprocessing as mp
 import numpy as np
 
-import emgCapture
-
-import userGuide
 import calibration
+import emgCapture
+import emgPlot
 import monitor
-
-import platform
-import serial.tools.list_ports
-
-# isPi = (platform.machine() == 'armv7l')
-isPi = True # for dev purposes
-notPi = (isPi == False)
-
-if notPi:
-    import emgPlot
-else:
-    import webApp
+import userGuide
+import webApp
 
 from constants import electrodeNum, synergyNum
+from helpers import clearQueue
 
+isPi = (platform.machine() == 'armv7l') # check if running on a pi
+notPi = (isPi == False)
+
+# check for interactive mode command-line argument
+
+# NOTE: interactive mode doesn't work properly in macOS >= High Sierra without
+# first running "export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES"
+# due to changes made by Apple to make fork() safer
+
+parser = argparse.ArgumentParser(
+    description='Project SuperLIMBinal Management Program')
+parser.add_argument('-i', '--interactive', action='store_true')
+args = parser.parse_args()
+
+if args.interactive and notPi:
+    headless = False
+else:
+    headless = True
+
+# setup necessary queues and processes
+motionq = mp.Queue()
+armStatusq = mp.Queue()
+webApp.startOutput(motionq, armStatusq)
+
+if headless:
+    print("Starting Project SuperLIMBinal in headless mode...")
+
+    serverq = mp.Queue()
+    sampleq = mp.Queue()
+
+    webApp.start(serverq, sampleq)
+    webPlotter = webApp.webPlotDataManager(sampleq)
+else:
+    print("Starting Project SuperLIMBinal in interactive mode...")
+
+    plotter = emgPlot.plotManager()
+
+if isPi:
+    port = '/dev/ttyUSB0'   # com port for pi
+else:
+    port = None  # if on a real computer it'll figure it out by itself...
+
+def checkArmStatus(armConnected):
+    while armStatusq.empty() == False:
+        armConnected = armStatusq.get()
+    
+    return armConnected
 
 def run(): # main program logic
-    # let a maximum of ~100ms of data pile up in the queue
+    # let a maximum of ~100ms (60 sample sets) of data pile up in the queue
     q = mp.Queue(60)
-    p = mp.Process(target=emgCapture.capture, args=(q, '/dev/ttyUSB0'))
-    #data capture process so that it's not blocked by program logic.
+    # data capture is done in separate process so that it's not blocked by program logic.
+    deviceStatusq = mp.Queue()
+
+    def checkDeviceStatus(deviceConnected):
+        while deviceStatusq.empty() == False:
+            deviceConnected = deviceStatusq.get()
+
+        return deviceConnected
+
+    p = mp.Process(target=emgCapture.capture, args=(q, deviceStatusq, port))
 
     deviceConnected = False
     print("\nConnecting to device...")
@@ -58,6 +98,7 @@ def run(): # main program logic
         deviceConnected = True
     else:
         print("Connection failed!")
+        p.join()
 
     op = 0
 
@@ -65,154 +106,138 @@ def run(): # main program logic
     baselines = np.zeros(electrodeNum)
     maxes = np.full(electrodeNum,256*256)
 
-    # if is pi, start up webserver and treat it as the plotter, input, and output
-    # it's not worth the time to design it better to work nicely in both modes
-    # so I'll just rewrite a lot of the non-interactive mode here
-    # start a queue to get commands from the server
-    # every cycle, get a command from the queue
-    # if it's valid, enter a mode and tell the webserver that it's all good
-
-    # if not a pi, start up emgplot and treat it as the plotter
-    # get a command from the input queue
-
     calibrated = False
+    armConnected = False
 
-    if isPi:
-        serverq = mp.Queue()
-        sampleq = mp.Queue()
-        motionq = mp.Queue()
-        # app.run(host='0.0.0.0') # insecure, but it works for now
-        webApp.start(serverq, sampleq)
-        webApp.startOutput(motionq)
-        webPlotter = webApp.webPlotDataManager(sampleq)
-        # webApp.runApp()
+    while True:
+        if deviceConnected:
+            if headless:
+                op = serverq.get(block=True)
 
-        while True:
-            op = serverq.get(block=True)
-            # print(op)
-            if op == "getSystemStatus":
-                serverq.put((deviceConnected,False,calibrated))
+                if op == "getSystemStatus":
+                    armConnected = checkArmStatus(armConnected)
+                    deviceConnected = checkDeviceStatus(deviceConnected)
+                    serverq.put((deviceConnected,armConnected,calibrated))
 
-            elif op == "startCalibration":
-                W, baselines, maxes = calibration.calibrate(q, webPlotter, isPi=True, server=serverq)
+                elif op == "startCalibration":
+                    W, baselines, maxes = calibration.calibrate(q, webPlotter, headless=True, server=serverq)
 
-                if W != "failed!":
-                    print("\nCalibration complete. Synergy matrix W:")
-                    print(W)
-                    print("\nBaselines:")
-                    print(baselines)
-                    print("\nMax values:")
-                    print(maxes)
+                    if W != "failed!":
+                        print("\nCalibration complete. Synergy matrix W:")
+                        print(W)
+                        print("\nBaselines:")
+                        print(baselines)
+                        print("\nMax values:")
+                        print(maxes)
 
-                    np.save("calibrationMatrix.npy",W)
-                    np.save("baselines.npy", baselines)
-                    np.save("maxes.npy",maxes)
-                    print("Matrix saved.")
+                        np.save("calibrationMatrix.npy",W)
+                        np.save("baselines.npy", baselines)
+                        np.save("maxes.npy",maxes)
+                        print("Matrix saved.")
 
-                    calibrated = True
+                        calibrated = True
 
-                    serverq.put("done")
-                    time.sleep(1)
+                        serverq.put("done")
+                        time.sleep(1)
 
-            elif op == "loadMatrix":
-                # print("loading matrix...")
-                try:
-                    W = np.load("calibrationMatrix.npy")
-                    baselines = np.load("baselines.npy")
-                    maxes = np.load("maxes.npy")
-                    calibrated = True
-                    serverq.put((True, False))
-                except:
-                    serverq.put((False, True))
+                elif op == "loadMatrix":
+                    # print("loading matrix...")
+                    try:
+                        W = np.load("calibrationMatrix.npy")
+                        baselines = np.load("baselines.npy")
+                        maxes = np.load("maxes.npy")
+                        calibrated = True
+                        serverq.put((True, False))
+                    except:
+                        serverq.put((False, True))
 
-            elif op == "startMonitor":
-                monitor.monitor(q, motionq, W, baselines, maxes, webPlotter, server=serverq, isPi=True)
-            elif op == "rebooting...":
-                print("Reboot command received.")
+                elif op == "startMonitor":
+                    monitor.monitor(q, motionq, W, baselines, maxes, webPlotter, server=serverq, isPi=True)
+                elif op == "rebooting...":
+                    print("Rebooting...")
 
-            if deviceConnected == False:
-                while q.empty() == False:
-                    message = q.get()
-                    if message == "Connection established.":
-                        print(message)
-                        deviceConnected = True
-                        break
-                    else:
-                        print("Connection failed!")
+        #     else:   # interactive main loop
+        #         if op == 0:
+        #             userGuide.menuPrompt()
+        #             op = input("Option: ")
+        #             try:
+        #                 tmp = int(op)
+        #                 op = tmp
+        #             except:
+        #                 pass
 
+        #         elif op == 1 and deviceConnected: # calibrate
+        #             W, baselines, maxes = calibration.calibrate(q, plotter)
+        #             calibrated = True
 
-    elif notPi:   # interactive main loop
-        plotter = emgPlot.plotManager()
-    
-        while True:
-            if op == 0:
-                userGuide.menuPrompt()
-                op = input("Option: ")
-                try:
-                    tmp = int(op)
-                    op = tmp
-                except:
-                    pass
+        #             print("\nCalibration complete. Synergy matrix W:")
+        #             print(W)
+        #             print("\nBaselines:")
+        #             print(baselines)
+        #             print("\nMax values:")
+        #             print(maxes)
 
-            elif op == 1 and deviceConnected: # calibrate
-                W, baselines, maxes = calibration.calibrate(q, plotter)
-                calibrated = True
+        #             toSave = input("\nWould you like to save this matrix? (y/n): ")
 
-                print("\nCalibration complete. Synergy matrix W:")
-                print(W)
-                print("\nBaselines:")
-                print(baselines)
-                print("\nMax values:")
-                print(maxes)
+        #             if toSave == "y":
+        #                 np.save("calibrationMatrix.npy",W)
+        #                 np.save("baselines.npy", baselines)
+        #                 np.save("maxes.npy",maxes)
+        #                 print("Matrix saved.")
+        #             else:
+        #                 print("Matrix not saved.")
 
-                toSave = input("\nWould you like to save this matrix? (y/n): ")
+        #             op = 0
+        #         elif op == 2: # load
+        #             try:
+        #                 W = np.load("calibrationMatrix.npy")
+        #                 baselines = np.load("baselines.npy")
+        #                 maxes = np.load("maxes.npy")
+        #                 calibrated = True
+        #                 print("Calibration matrix loaded.")
+        #             except:
+        #                 print("Error: Calibration matrix not found!")
 
-                if toSave == "y":
-                    np.save("calibrationMatrix.npy",W)
-                    np.save("baselines.npy", baselines)
-                    np.save("maxes.npy",maxes)
-                    print("Matrix saved.")
-                else:
-                    print("Matrix not saved.")
+        #             op = 0
+        #         elif op == 3 and deviceConnected:
+        #             if calibrated:
+        #                 monitor.monitor(q, None, W, baselines, maxes, plotter)
+        #             else:
+        #                 print("Error: Calibrate or load a calibration matrix first.")
 
-                op = 0
-            elif op == 2: # load
-                try:
-                    W = np.load("calibrationMatrix.npy")
-                    baselines = np.load("baselines.npy")
-                    maxes = np.load("maxes.npy")
-                    calibrated = True
-                    print("Calibration matrix loaded.")
-                except:
-                    print("Error: Calibration matrix not found!")
+        #             op = 0
+        #         elif op == 4: # run test
+        #             W = calibration.calibrate(q, plotter, testmode=True)
+        #             print(W)
+        #             op = 0
+        #         elif op == 5: # quit
+        #             break
+        #         else:
+        #             print("Invalid command.\n")
+        #             op = 0
+        else:
+            break
 
-                op = 0
-            elif op == 3 and deviceConnected:
-                if calibrated:
-                    monitor.monitor(q, W, baselines, maxes, plotter)
-                else:
-                    print("Error: Calibrate or load a calibration matrix first.")
-
-                op = 0
-            elif op == 4: # run test
-                W = calibration.calibrate(q, plotter, testmode=True)
-                print(W)
-                op = 0
-            elif op == 5: # quit
-                break
-            else:
-                print("Invalid command.\n")
-                op = 0
-
-    userGuide.endMessage()
     p.terminate()
     p.join()
 
-if __name__ == "__main__":
-    if isPi:
-        print("Starting Project SuperLIMBinal in headless mode...")
-    else:
-        print("Starting Project SuperLIMBinal in interactive mode...")
 
-    run()
+
+if __name__ == "__main__":
+    while True:
+        try:
+            run()
+            print("Retrying in 10 seconds...\n")
+            time.sleep(10)
+        except KeyboardInterrupt:
+            print("\nEnding program execution...")
+            break
+        except Exception as e:
+            print("Program died!")
+            print(e)
+            print("Retrying in 10 seconds...\n")
+            time.sleep(10)
+
+    time.sleep(0.1)
+    userGuide.endMessage()
     sys.exit()

@@ -15,7 +15,7 @@ Adafruit_PWMServoDriver servos = Adafruit_PWMServoDriver();
 #define THUMBMAX 260
 #define INDEXMIN 500
 #define INDEXMAX 200
-#define MIDDLEMIN 500
+#define MIDDLEMIN 480
 #define MIDDLEMAX 160
 #define RINGMIN 500
 #define RINGMAX 200

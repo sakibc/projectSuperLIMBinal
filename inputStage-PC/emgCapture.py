@@ -1,10 +1,8 @@
 """ Copyright 2018 Sakib Chowdhury and Claudia Lutfallah
     
 """
-import datetime
-import numpy as np
+
 import queue
-import scipy.io
 import serial
 import serial.tools.list_ports
 import struct
@@ -22,30 +20,32 @@ def getPort():
 
     return port
 
-def capture(q, port=None):
+def capture(q, deviceStatusq, port=None):
     """Capture data from Arduino in a separate process and push it to the queue.
 
     Keyword arguments:
     q -- the queue to push data to, 64 8-byte ints each time
-    e -- the queue for expected control messages, checked each cycle
+    port -- the port to connect to, if unspecified it will be determined.
     """
 
-    baudRate = 500000  # any slower and the Arduino can't send the data fast enough
+    baudRate = 500000  # any slower and the Arduino can't send data fast enough
 
     # sampling rate overall is 16MHz/(32prescale*13cycles) ~= 38462
     # for each channel, at 8 channels is ~4808 Hz
     # we sample chunks 601 times per second
 
-    attemptConnect = True
-    timeout = 5
+    attemptConnect = True   # keep trying to connect until the timeout limit
+    timeout = 5             # is reached
 
     while attemptConnect:
         attemptConnect = False
-        port = getPort()
+
+        if port == None:
+            port = getPort()
         try:
             with serial.Serial(port, baudRate, timeout=1, dsrdtr=True) as arduIn:
 
-                print("Opening port...")
+                print("Opening port", port+"...")
 
                 startMessage = arduIn.readline().decode('utf-8')
                 while ("Serial OK. Initializing..." in startMessage) != True:
@@ -64,10 +64,12 @@ def capture(q, port=None):
                     except serial.SerialException:
                         print("Error: Connection lost.")
                         capturing = False
+                        deviceStatusq.put(False)
 
                     except struct.error:
                         print("Error: Device sent invalid data.")
                         capturing = False
+                        deviceStatusq.put(False)
 
                     else:
                         try:
@@ -77,10 +79,8 @@ def capture(q, port=None):
                             pass    # if the queue's full, don't force it...
 
         except serial.SerialException:
-            print("Error: Device not found. Trying again in 10 seconds...")
-            q.put("error")  # so the main program knows not to continue
-            time.sleep(10)
-            attemptConnect = True
+            print("Error: Device not found.")
+            q.put("error")  # so the main program knows the connection failed
         except KeyboardInterrupt:
             print("\nProgram execution interrupted.")
         except UnicodeDecodeError:  # this happens sometimes...
@@ -91,3 +91,4 @@ def capture(q, port=None):
                 attemptConnect = True
             else:
                 print("Invalid data received 5 times. Connection timed out.")
+                q.put("error")

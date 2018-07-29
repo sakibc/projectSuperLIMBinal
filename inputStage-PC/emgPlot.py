@@ -1,7 +1,6 @@
 """ Copyright 2018 Sakib Chowdhury and Claudia Lutfallah
     
 """
-import inputStage
 
 from pyqtgraph.Qt import QtGui, QtCore
 import pyqtgraph as pg
