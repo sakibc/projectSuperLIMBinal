@@ -53,7 +53,7 @@ def monitor(q, motionq, W, baselines, maxes, plotter, server=None, headless=Fals
         activation = np.matmul(Winv,buffer)
         activation = activation.clip(0,1)
 
-        motionq.put(activation)
+        motionq.put(activation[:,0:8])
 
         if headless == False:
             plotter.sendEmg(buffer)

@@ -26,22 +26,8 @@ Adafruit_PWMServoDriver servos = Adafruit_PWMServoDriver();
 
 #define SYNNUM 2 // number of synergies
 
-// Synergy test0: hand open/close
-// Synergy test1: wrist left/right
-// Synergy  0: flex thumb
-// Synergy  1: extend thumb
-// Synergy  2: flex index
-// Synergy  3: extend index
-// Synergy  4: flex 
-// Synergy  5:
-// Synergy  6:
-// Synergy  7:
-// Synergy  8:
-// Synergy  9:
-// Synergy 10:
-// Synergy 11:
-
 uint16_t synergies[SYNNUM];
+uint16_t timingPulse;
 int mult = 1;
 
 uint16_t readUnsignedInt()
@@ -55,6 +41,24 @@ int getPulseLength(int deg)
 {
   // Convert from degrees to pulse length in ticks
   return map(deg, 0, 180, SERVOMIN, SERVOMAX);
+}
+
+void setHandOpenClose()
+{
+  uint16_t level = synergies[0];
+
+  servos.setPWM(THUMB, 0, map(level, 0, 1000, THUMBMIN, THUMBMAX));
+  servos.setPWM(INDEX, 0, map(level, 0, 1000, INDEXMIN, INDEXMAX));
+  servos.setPWM(MIDDLE, 0, map(level, 0, 1000, MIDDLEMIN, MIDDLEMAX));
+  servos.setPWM(RING, 0, map(level, 0, 1000, RINGMIN, RINGMAX));
+  servos.setPWM(PINKIE, 0, map(level, 0, 1000, PINKIEMIN, PINKIEMAX));
+}
+
+void setWristPosition()
+{
+  uint16_t level = synergies[1];
+
+  servos.setPWM(WRIST, 0, map(level, 0, 1000, WRISTMIN, WRISTMAX));
 }
 
 void setup()
@@ -77,31 +81,19 @@ void setup()
   servos.setPWM(ELBOW, 0, 110); // the elbow's not strong enough but this is
   // enough to prop the arm up a bit
 
-  synergies[0] = 500;
-  synergies[1] = 500;
-}
+  synergies[0] = 1000;
+  synergies[1] = 1000;
 
-void setHandOpenClose() {
-  uint16_t level = synergies[0];
-
-  servos.setPWM(THUMB, 0, map(level, 0, 1000, THUMBMIN, THUMBMAX));
-  servos.setPWM(INDEX, 0, map(level, 0, 1000, INDEXMIN, INDEXMAX));
-  servos.setPWM(MIDDLE, 0, map(level, 0, 1000, MIDDLEMIN, MIDDLEMAX));
-  servos.setPWM(RING, 0, map(level, 0, 1000, RINGMIN, RINGMAX));
-  servos.setPWM(PINKIE, 0, map(level, 0, 1000, PINKIEMIN, PINKIEMAX));
-}
-
-void setWristPosition() {
-  uint16_t level = synergies[1];
-
-  servos.setPWM(WRIST, 0, map(level, 0, 1000, WRISTMIN, WRISTMAX));
+  setHandOpenClose();
+  setWristPosition();
 }
 
 void loop()
 {
-  synergies[0] = readUnsignedInt();
-  synergies[1] = readUnsignedInt();
-
-  setHandOpenClose();
-  setWristPosition();
+  if (Serial.available() >= 4) {
+    synergies[0] = readUnsignedInt();
+    synergies[1] = readUnsignedInt();
+    setHandOpenClose();
+    setWristPosition();
+  }
 }
