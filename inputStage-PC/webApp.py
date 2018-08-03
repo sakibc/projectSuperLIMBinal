@@ -26,28 +26,21 @@ class webPlotDataManager:
     def stopEmg(self):
         pass    # same
     def sendEmg(self, dat):
-        self.sampleTimer += 1
-        if self.sampleTimer == 20:
-            self.sampleq.put(dat)
-            self.sampleTimer = 0
+        self.sampleq.put(dat)
     def startSyn(self):
         self.startTime = time.time()
     def stopSyn(self):
         pass    # same
     def sendSyn(self, dat):
         # print(dat)
-        self.sampleTimer += 1
-        if self.sampleTimer == 20:
-            # print(dat)
-            self.sampleq.put(dat)
-            self.samplesSent += 1
-            self.sampleTimer = 0
-            if self.samplesSent == 100:
-                currentTime = time.time()
-                timePassed = currentTime - self.startTime
-                print("Broadcast frequency:", 100/timePassed, "Hz")
-                self.startTime = currentTime
-                self.samplesSent = 0
+        self.sampleq.put(dat)
+        self.samplesSent += 1
+        if self.samplesSent == 100:
+            currentTime = time.time()
+            timePassed = currentTime - self.startTime
+            print("Broadcast frequency:", 100/timePassed, "Hz")
+            self.startTime = currentTime
+            self.samplesSent = 0
 
 def outputServer(motionq, armStatusq):
     print("Opening socket to robotic arm...")

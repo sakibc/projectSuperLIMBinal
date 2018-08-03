@@ -8,13 +8,13 @@ import filterData
 from helpers import *
 from constants import *
 
-def monitor(q, motionq, W, baselines, maxes, plotter, server=None, isPi=False):
-    if isPi == False:
+def monitor(q, motionq, W, baselines, maxes, plotter, server=None, headless=False):
+    if headless == False:
         print("Calculating inverse...")
 
     Winv = np.linalg.pinv(W)
 
-    if isPi == False:
+    if headless == False:
         print("Inverse matrix calculated.")
 
         print("Setting up arm...")
@@ -22,40 +22,51 @@ def monitor(q, motionq, W, baselines, maxes, plotter, server=None, isPi=False):
     # movep = mp.Process(target=outputStage.move,args=(moveq,))
     # movep.start()
 
-    if isPi == False:
+    if headless == False:
         print("Starting graphs...")
         plotter.startEmg()
 
     plotter.startSyn()
 
-    filter = filterData.liveFilter()
+    filterer = filterData.liveFilter()
 
     clearQueue(q)
     clearQueue(motionq)
 
+    buffer = np.zeros((8,16))
+    timer = 0
+
     while True:
-        sample = q.get(block=True, timeout=0.1)
-        sample = reorder(sample)
-        sample = filter.prep(sample)
+        for i in range(2):
+            sample = q.get(block=True)
+            sample = reorder(sample)
+
+            index = i*8
+            buffer[:, (index):(index+8)] = sample
+
+        buffer = filterer.prep(buffer)
 
         for i in range(electrodeNum):
-            sample[i,:] -= baselines[i]
-            sample[i,:] /= maxes[i]
+            buffer[i,:] -= baselines[i]
+            buffer[i,:] /= maxes[i]
 
-        activation = np.matmul(Winv,sample)
+        activation = np.matmul(Winv,buffer)
         activation = activation.clip(0,1)
 
         motionq.put(activation)
 
-        if isPi == False:
-            plotter.sendEmg(sample)
+        if headless == False:
+            plotter.sendEmg(buffer)
         else:
             if server.empty() == False:
                 dat = server.get()
                 if dat == "abort":
                     break
+            timer += 1
+            if timer == 10:
+                plotter.sendSyn(activation)
+                timer = 0
 
-        plotter.sendSyn(activation)
-
+    filterer.stop()
     plotter.stopEmg()
     plotter.stopSyn()

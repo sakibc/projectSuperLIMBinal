@@ -23,10 +23,20 @@ def getCalibData(collectionTime, q, plotter, headless, server=None):
 
     print("Starting data collection...")
 
+    timer = 0
+
     for i in range(int(collectionTime*Fs/blockSamples)):
         sample = q.get(block=True)
         sample = reorder(sample)
-        plotter.sendEmg(sample/256)
+
+        if headless:
+            timer += 1
+            if timer == 20:
+                plotter.sendEmg(sample/256)
+                timer = 0
+        else:
+            plotter.sendEmg(sample/256)
+
         index = i*blockSamples
         dat[:, (index):(index+blockSamples)] = sample
 
@@ -66,9 +76,19 @@ def calibrate(q, plotter, testmode=False, headless=False, server=None):
         # print("Data successfully saved.")
 
         print("Prepping data...")
+
+        pool = mp.Pool(8)
+
         startTime = time.time()
-        caliData = filterData.longPrep(caliData)
+        # caliData = filterData.longPrep(caliData)
+
+        caliData = np.array(pool.map(filterData.longPrep, caliData))
+
         endTime = time.time()
+
+        pool.close()
+        pool.join()
+
         timePassed = endTime - startTime
         print("Data prepped for analysis in", timePassed, 's.')
 

@@ -3,6 +3,8 @@
 """
 from scipy import signal as sig
 import numpy as np
+import multiprocessing as mp
+import itertools
 
 from constants import *
 
@@ -22,7 +24,7 @@ g = 6.8059308200936e-06
 
 # wl = 4/(Fs/2)
 # bLow, aLow = sig.butter(2, wl)
-
+windowLen = round(0.5*Fs)
 
 for i in range(2,7): # remove 5 more harmonics for good measure...
     w0i = i*w0
@@ -46,18 +48,27 @@ def longPrep(signal):
     """Prep a prerecorded signal array for NNMF decomposition."""
     signal = lowComb(center(signal))
     signal = np.square(signal)
-    windowLen = round(0.5*Fs)
     window = np.ones(windowLen)/windowLen
     return sig.lfilter(window,1,signal)
     # return g*sig.sosfilt(sos, signal)
     
+def parallelPrep(signal, zic, zis):     # unfortunately not more efficient...
+    signal = center(signal)  # center
+    signal, zic = sig.lfilter(b, a, signal, zi=zic)  # comb
+    signal = np.square(signal)
+    signal, zis = sig.sosfilt(sos, signal, zi=zis)    # smooth
+    return (g*signal, zic, zis)
+
 class liveFilter():
     """A filter that keeps track of previous states for realtime filtering."""
     def __init__(self):
         self.zic = np.zeros((electrodeNum,(max(b.size,a.size)-1)))
         # internal state for 60Hz comb filter
         self.zis = np.expand_dims(np.tile(sig.sosfilt_zi(sos),(8,1)),axis=0)
+        # self.zis = np.tile(sig.sosfilt_zi(sos),(8,1))
+        # self.zis = np.reshape(self.zis, (8,1,2))
         # internal state for smoothing filter
+        # self.pool = mp.Pool(8)
 
     def lowComb(self, signal):
         y, self.zic = sig.lfilter(b, a, signal, zi=self.zic)
@@ -69,9 +80,19 @@ class liveFilter():
         # let's see if this works, okay?
 
     def prep(self, signal):
-        signal = self.lowComb(center(signal))
-        signal = np.square(signal)
-        return self.smooth(signal)
+        return self.smooth(np.square(self.lowComb(center(signal))))
+        # sets = zip(signal, self.zic, self.zis)
+        # results = self.pool.starmap(parallelPrep,sets)
+        # processed = np.zeros((8,8))
+        # for i in range(8):
+        #     processed[i] = results[i][0]
+        #     self.zic[i] = results[i][1]
+        #     self.zis[i] = results[i][2]
 
+        # return processed
 
+    def stop(self):
+        pass
+        # self.pool.close()
+        # self.pool.join()
     
