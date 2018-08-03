@@ -74,17 +74,19 @@ def checkArmStatus(armConnected):
     
     return armConnected
 
+deviceStatusq = mp.Queue()
+
+def checkDeviceStatus(deviceConnected):
+    while deviceStatusq.empty() == False:
+        deviceConnected = deviceStatusq.get()
+
+    return deviceConnected
+
 def run(): # main program logic
     # let a maximum of ~100ms (60 sample sets) of data pile up in the queue
     q = mp.Queue(60)
     # data capture is done in separate process so that it's not blocked by program logic.
-    deviceStatusq = mp.Queue()
 
-    def checkDeviceStatus(deviceConnected):
-        while deviceStatusq.empty() == False:
-            deviceConnected = deviceStatusq.get()
-
-        return deviceConnected
 
     p = mp.Process(target=emgCapture.capture, args=(q, deviceStatusq, port))
 
