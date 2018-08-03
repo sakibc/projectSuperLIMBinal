@@ -6,6 +6,7 @@ import multiprocessing as mp
 import scipy.io
 from sklearn.decomposition import NMF
 import time
+# import nimfa
 
 import filterData
 import userGuide
@@ -13,7 +14,7 @@ import userGuide
 from helpers import clearQueue, reorder, saveData
 from constants import *
 
-def getCalibData(collectionTime, q, plotter, isPi, server=None):
+def getCalibData(collectionTime, q, plotter, headless, server=None):
     dat = np.zeros((electrodeNum,collectionTime*Fs))
 
     plotter.startEmg()
@@ -22,18 +23,31 @@ def getCalibData(collectionTime, q, plotter, isPi, server=None):
 
     print("Starting data collection...")
 
+    timer = 0
+
     for i in range(int(collectionTime*Fs/blockSamples)):
         sample = q.get(block=True)
         sample = reorder(sample)
-        plotter.sendEmg(sample/256)
+
+        if headless:
+            timer += 1
+            if timer == 20:
+                plotter.sendEmg(sample/256)
+                timer = 0
+        else:
+            plotter.sendEmg(sample/256)
+
         index = i*blockSamples
         dat[:, (index):(index+blockSamples)] = sample
+
+        if server != None and server.empty() == False:
+            return None
 
     plotter.stopEmg()
 
     return dat
 
-def calibrate(q, plotter, testmode=False, isPi=False, server=None):
+def calibrate(q, plotter, testmode=False, headless=False, server=None):
     W = np.ones((electrodeNum, synergyNum))
     print("Calibrating...")
 
@@ -42,36 +56,71 @@ def calibrate(q, plotter, testmode=False, isPi=False, server=None):
             "../inputStage-analysis/test-data/set3.mat")['elecData']
         print("\nTest data loaded. Generating calibration matrix...")
     else:
-        if isPi == False:
+        if headless == False:
             print("\nStarting calibration. Follow the instructions as they appear.")
 
             promptp = mp.Process(target=userGuide.calibration)
-
             promptp.start()
 
         time.sleep(5)  # give the user time to read...
-        caliData = getCalibData(45, q, plotter, isPi, server=server)   # capture 45 seconds of data
+        caliData = getCalibData(45, q, plotter, headless, server=server)   # capture 45 seconds of data
         
-        if isPi == False:
+        if headless == False:
             promptp.join()
 
     print("Data capture finished.")
 
     if type(caliData) is np.ndarray:
         print("Data processing started.")
-        saveData(caliData)
-        print("Data successfully saved.")
+        # saveData(caliData)
+        # print("Data successfully saved.")
 
         print("Prepping data...")
-        caliData = filterData.longPrep(caliData)
-        print("Data prepped for analysis.")
 
-        if testmode:
-            timeStart = [(t+8)*Fs for t in range(0, 45, 9)]
-        else:
-            timeStart = [(t+4)*Fs for t in range(0,45,9)]
+        pool = mp.Pool(8)
 
+        startTime = time.time()
+        # caliData = filterData.longPrep(caliData)
+
+        caliData = np.array(pool.map(filterData.longPrep, caliData))
+
+        endTime = time.time()
+
+        pool.close()
+        pool.join()
+
+        timePassed = endTime - startTime
+        print("Data prepped for analysis in", timePassed, 's.')
+
+        timeStart = [(t+4)*Fs for t in range(0,45,9)]
         timeEnd = [t + 3*Fs for t in timeStart]
+
+        # relaxed = caliData[:,timeStart[0]:timeEnd[0]]
+        # baselines = np.mean(relaxed,-1)
+        # maxes = np.ones(electrodeNum)
+
+        # for i in range(8):  # normalize signals
+        #     caliData[i,:] -= baselines[i]
+        #     maxes[i] = (caliData[i, :]).max()
+        #     caliData[i,:] /= maxes[i]
+
+        # caliData = np.clip(caliData,0,1)
+
+        # Z0 = caliData[:, 6000:45*Fs]
+        # Z1 = caliData[:, 45*Fs:]
+
+        # # Z0 = np.transpose(Z0)
+
+        # snmf = nimfa.Snmf(Z0,rank=4,version='r',beta=1e-4)
+        # W = snmf().basis()
+        # print(W.shape)
+
+        # if testmode:
+        #     timeStart = [(t+8)*Fs for t in range(0, 45, 9)]
+        # else:
+        #     timeStart = [(t+4)*Fs for t in range(0,45,9)]
+
+        # timeEnd = [t + 3*Fs for t in timeStart]
 
         relaxed = caliData[:,timeStart[0]:timeEnd[0]]
         baselines = np.mean(relaxed,-1)
